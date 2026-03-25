@@ -1,0 +1,40 @@
+name: Desplegar en GitHub Pages
+
+# Trozo de código donde se especifica que solo se va a ejecutar este proceso cuando se haga un git-push a la rama "main"
+on:
+  push:
+    branches: ["main"] 
+
+# Permisos necesarios para interactuar con GitHub Pages
+permissions:
+  contents: read # Le damos permisos de lectura para que pueda leer el código
+  pages: write # Le damos permisos de escritura para que pueda publicar en el servidor de GitHubPages
+  id-token: write # Tocken necesario para verificarse a la hora de desplegar en GitHubPages
+
+# Evita que se pisen despliegues simultáneos
+concurrency:
+  group: "pages" # Ponemos un nombre para identificar los despliegues y que tengan el mismo nombre 
+  cancel-in-progress: true # `Con este trozo de código, lo que nos aseguramos es que si hay un push con el nombre del grupo pages que se esta ejecutando, y queremos lanzar otro, este se para, y ejecuta el nuevo, asi se ahorran recursos
+
+# Definimos la tarea que se va a realizar en este workflow
+jobs:
+  deploy: # Le decimos que el trabajo que va a ejecutar es un deployment, es decir, un despliegue
+    environment: # Le decimos el entorno donde se va a desplegar
+      name: github-pages # Nombre del entorno
+      url: ${{ steps.deployment.outputs.page_url }} # La url del despliegue
+    runs-on: ubuntu-latest # Especificamos el sistema oprativo de la máquina virtual donde GitHub va a ejecutar comandos, en este caso este entorno es el que usa GitHub
+    steps:
+      - name: Checkout del repositorio 
+        uses: actions/checkout@v4 # Sirve para clonar los archivos en el servidor de ubuntu que ha levantado para procesar los archivos
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v4 # Configuraciones necesarias del servidor para que sea compaible con los servidores de GitHub
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3 
+        with:
+          path: '.applications' # Direccion donde queremos que lea los archivos de nuestro repositorio
+
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # Despliega la página y nos da la variable enviroment para obtener la URL
