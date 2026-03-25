@@ -33,7 +33,7 @@ jobs:
       - name: Subir artefacto de Pages
         uses: actions/upload-pages-artifact@v3 
         with:
-          path: '.applications' # Direccion donde queremos que lea los archivos de nuestro repositorio
+          path: 'applications' # Direccion donde queremos que lea los archivos de nuestro repositorio
 
       - name: Desplegar en GitHub Pages
         id: deployment
