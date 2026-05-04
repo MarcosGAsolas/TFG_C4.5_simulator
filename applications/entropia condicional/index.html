@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="../lib/jquery-3.7.1.min.js"></script>
+    <script type="module" src="../lib/input-check.js"></script>
+    <script type="module" src="../lib/entropy-calculator.js"></script>
+    <script type="module" src="js/catNumHandler.js"></script>
+    <script type="module" src="js/calculator.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de entropia condicional</title>
+</head>
+
+<body>
+    <!-- Header -->
+ <header class="py-3 mb-4 border-bottom bg-body-secondary bg-opacity-75 ">
+
+        <div class="d-flex align-items-center gap-2 ">
+            <a href="https://www.ubu.es" class="d-flex align-items-center me-2 ">
+                <img src="/img/ubulogocolorfull.png" width="100" height="50">
+            </a>
+            <a href="../index.html" class="fw-bold fs-5 ms-2 me-2 nav-link link-dark">Simulador árbol de decisión (Algoritmo C4.5) </a> 
+          <div class="d-flex flex-row align-items-center gap-2 ms-auto">
+            <a class="btn btn-outline-secondary btn-sm">Entropia</a>
+            <button class="btn btn-outline-secondary btn-sm">Elección de nodo</button>
+            <button class="btn btn-outline-secondary btn-sm">Árbol de decisión C4.5</button>
+          </div>
+        </div>
+    </header>
+    <div class="container pb-2">
+        <div class="section-switcher">
+            <a href="../entropia/index.html" class="section-switcher-link">Entropia</a>
+            <span class="section-switcher-current">Entropia condicional</span>
+        </div>
+        <!-- Info card -->
+        <div class="row-auto p-2 pb-4">
+            <div class="accordion" id="accordionInfo">
+                <div class="card bg-light mx-auto ">
+                    <!-- General Info -->
+                    <div class="card-header fs-6" id="generalInfo">
+                        <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
+                            data-bs-toggle="collapse" href="#generalInfoCondEntropy" aria-expanded="false"
+                            aria-controls="generalInfoCondEntropy">
+                            Informacion general
+                        </a>
+                    </div>
+                    <div class="collapse" id="generalInfoCondEntropy" aria-labelledby="generalInfo"
+                        data-parent="#accordionInfo">
+                        <div class="card-body ">
+                            <p class="card-text fw-light">
+                                La entropia condicional es una medida de la impureza, incertidumbre o aleatoriedad que
+                                permanece en una variable aleatoria cuando se conoce otra variable aleatoria.
+                            <p class="card-text fw-light">
+                                En el contexto de los problemas de clasificacion, la entropia condicional cuantifica la
+                                incertidumbre de una variable objetivo \( Y \), que describe el conjunto de etiquetas de
+                                clase, dado una categoria o valor \( x \) del atributo \( X \).
+                            <ul class="card-text fw-light">
+                                <li>
+                                    Nota: El termino "categoria" (de un atributo) suele referirse a valores categoricos
+                                    o nominales, mientras que "valor" (de un atributo) suele referirse a valores
+                                    numericos. Esta aplicacion usa en la practica valores categoricos, pero emplea
+                                    ambos terminos en la informacion teorica.
+                                </li>
+                            </ul>
+                            </p>
+                            <a href="https://en.wikipedia.org/wiki/Conditional_entropy"
+                                class="btn btn-outline-dark ">Saber mas</a>
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Calculation -->
+                    <div class="card-header fs-6" id="calculation">
+                        <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
+                            data-bs-toggle="collapse" href="#calcInfoCondEntropy" aria-expanded="false"
+                            aria-controls="calcInfoCondEntropy">
+                            Calculo
+                        </a>
+                    </div>
+                    <div class="collapse" id="calcInfoCondEntropy" aria-labelledby="calculation"
+                        data-parent="#accordionInfo">
+                        <div class="card-body ">
+                            <p class="card-text fw-light">
+                            <p class="card-text fw-light">
+                                Para un problema de clasificacion binaria, la entropia condicional \( E(Y|X) \) se
+                                calcula usando la siguiente formula:
+                            </p>
+                            <p class="card-text fw-light">
+                                \[ E(Y|X) = \sum_{x \in X} p(x) E(Y|X = x) \]
+                            </p>
+                            <p class="card-text fw-light">
+                                Donde:
+                            </p>
+                            <ul class="card-text fw-light">
+                                <li>\( X \) es el conjunto de categorias o valores del primer atributo</li>
+                                <li>\( Y \) es el conjunto de categorias o valores del atributo clase</li>
+                                <li>\( p(x) \) es la proporcion entre el numero de instancias con la categoria o valor
+                                    \( x \)
+                                    y el tamano del dataset</li>
+                            </ul>
+                            <p class="card-text fw-light">
+                                Las entropias condicionales para cada categoria o valor \( x \) del atributo \(
+                                X \) (mostradas como \( E(Categoria) \) en la calculadora inferior) se calculan con la
+                                siguiente formula:
+                            </p>
+                            <p class="card-text fw-light">
+                                \[ E(Y|X = x) = - \sum_{y \in Y} p(y|x)\log_2(p(y|x)) \]
+                            </p>
+                            <p class="card-text fw-light">
+                                Donde:
+                            </p>
+                            <ul class="card-text fw-light">
+                                <li>\( p(y|x) \) es la proporcion de instancias del dataset con la categoria o valor
+                                    \( x \) del atributo que tambien tienen la etiqueta de clase \( y \)</li>
+                            </ul>
+                            <p class="card-text fw-light">
+                                La suma se realiza sobre todas las categorias o valores posibles del atributo clase
+                                \( Y \).
+                            </p>
+                            <br>
+                            <p class="card-text fw-light">
+                            <b>Por ejemplo</b>, considera el espacio muestral de la clase (\(Y\)): \(\text{Jugar al golf} = \{\text{si}, \text{no}\}\), y el espacio muestral del atributo (\(X\)): \(\text{Tiempo} = \{\text{Soleado}, \text{Lluvioso}\}\). La entropia condicional se expresa como:
+                            </p>
+                            <p class="card-text fw-light">
+                                \[ E(\text{Jugar al golf} | \text{Tiempo}) = \sum_{x \in \text{Tiempo}} p(x) E(\text{Jugar al golf} | \text{Tiempo} = x) \]
+                            </p>
+                            <p class="card-text fw-light">
+                                En concreto, para la categoria "Soleado", podemos calcular:
+                            </p>
+                            <p class="card-text fw-light">
+                                \[ E(\text{Jugar al golf} | \text{Tiempo} = \text{Soleado}) = - \sum_{y \in \text{Jugar al golf}} p(y|\text{Soleado}) \log_2(p(y|\text{Soleado})) \] 
+                            </p>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row ">
+            <p class="fs-2 text-center">Calculadora de entropia condicional</p>
+            <!-- Alert sum 0 -->
+            <div class="row-auto">
+                <div class="col-auto text-center">
+                    <div class="alert alert-danger alert-dismissible d-none" id="alert-sum-0">
+                        <button type="button" class="btn-close"
+                            onclick="$('#alert-sum-0').addClass('d-none');"></button>
+                        Todos los valores de las instancias son 0. Introduce al menos una instancia con un valor entero positivo.
+                    </div>
+                </div>
+            </div>
+            <!-- Alert invalid value -->
+            <div class="row-auto">
+                <div class="col-auto text-center">
+                    <div class="alert alert-danger alert-dismissible d-none" id="alert-invalid-val">
+                        <button type="button" class="btn-close"
+                            onclick="$('#alert-invalid-val').addClass('d-none');"></button>
+                        Al menos un valor no es valido. Usa solo enteros positivos como valores de entrada.
+                    </div>
+                </div>
+            </div>
+            <!-- Alert no input -->
+            <div class="row-auto">
+                <div class="col-auto text-center">
+                    <div class="alert alert-danger alert-dismissible d-none" id="alert-empty-input">
+                        <button type="button" class="btn-close"
+                            onclick="$('#alert-empty-input').addClass('d-none');"></button>
+                        Al menos un campo esta vacio. Anade valores enteros positivos en cada campo.
+                    </div>
+                </div>
+            </div>
+            <!-- Conditional Entropy table -->
+            <div class="row-auto">
+                <div class="col-auto d-flex justify-content-center ">
+                    <div class="table-wrapper">
+                        <table class="table caption-top" id="table-cond-entropy">
+                            <caption>Atributo de ejemplo (\(Y\))</caption>
+                            <thead class="sticky-top">
+                                <tr>
+                                    <th></th>
+                                    <th>Clase 1</th>
+                                    <th>Clase 2</th>
+                                    <th>Proporcion</th>
+                                    <th>E(Categoria)</th>
+                                    <th class="text-center ">EC(Atributo)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td id="c1" class="text-center "><label class="form-control-plaintext ">Categoria
+                                            1:</label></td>
+                                    <td><input value=1 type=text class="form-control" /></td>
+                                    <td><input value=5 type=text class="form-control" /></td>
+                                    <td><label class="form-control-plaintext ">0.40</label></td>
+                                    <td><label class="form-control-plaintext ">0.65</label></td>
+                                    <td id="ceCell" rowspan="3" style="vertical-align: middle;"><label id="ce"
+                                            class="form-control-plaintext text-center fw-semibold  ">0.56</label></td>
+                                </tr>
+                                <tr>
+                                    <td id="c2" class="text-center "><label class="form-control-plaintext ">Categoria
+                                            2:</label></td>
+                                    <td><input value=1 type=text class="form-control" /></td>
+                                    <td><input value=8 type=text class="form-control" /></td>
+                                    <td><label class="form-control-plaintext ">0.60</label></td>
+                                    <td><label class="form-control-plaintext ">0.50</label></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr style="border-bottom: hidden;">
+                                    <td class="text-center ">
+                                        <div id="btnAddCategory" class="btn btn-outline-primary ">+</div>
+                                        <script type="module">
+                                            import { addCategory } from './js/catNumHandler.js';
+
+                                            document.querySelector('#btnAddCategory').addEventListener('click', addCategory);
+                                        </script>
+                                    </td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- "Calculate Conditional Entropy" button -->
+            <div class="row-auto pt-2 pb-3 ">
+                <div class="col-auto text-center ">
+                    <div id="btnCalculateCondEntropy" class="btn btn-primary ">Calcular entropia
+                        condicional
+                    </div>
+                    <script type="module">
+                        import { calcCondEntropy } from './js/calculator.js';
+
+                        document.querySelector('#btnCalculateCondEntropy').addEventListener('click', calcCondEntropy);
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Footer -->
+    <footer class="py-3 mt-2 border-top bg-dark text-white">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center ">
+            <div class="col-md-4 col-auto d-flex align-items-center">
+                <ul class="flex-column">
+                    <span class="fw-bold ">Autores:</span>
+                    <li class="mb-2 mt-2" style="list-style-type: none;">
+                        <span>Marcos Guzmán Asolas</span>
+                    </li>
+                    <li class="mb-2" style="list-style-type: none;">
+                        <span>Carlos López Nozal</span>
+                    </li>
+                    <li class="mb-2" style="list-style-type: none;">
+                        <span>Gadea Lucas Perez</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-3 col-auto d-flex align-items-center">
+                <span class="date fw-light"></span>
+                <script>
+                  // Obtiene la ultima actualización del repositorio escogido
+                  fetch("https://api.github.com/repos/MarcosGAsolas/TFG_C4.5_simulator")
+                    .then(res => res.json())
+                    .then(repo => {
+                      let d = new Date(repo.updated_at);
+                      document.querySelector(".date").textContent =
+                        `Ultima actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
+                    });
+                </script>
+            </div>
+        </div>
+ </footer>
+</body>
+
+</html>
