@@ -1,155 +1,154 @@
-const datasetTableId = 'table-dataset';
-const idColumnIndex = 0;
-const pendingRowClass = 'pending-dataset-row';
+const idTablaDataset = 'table-dataset';
+const indiceColumnaId = 0;
+const claseFilaPendiente = 'pending-dataset-row';
 
-function getNextId(tBodyRef) {
-    if (tBodyRef.rows.length === 0) {
+function obtenerSiguienteId(cuerpoTabla) {
+    if (cuerpoTabla.rows.length === 0) {
         return 1;
     }
 
-    var lastRow = tBodyRef.rows[tBodyRef.rows.length - 1];
-    return Number(lastRow.cells[idColumnIndex].textContent) + 1;
+    var ultimaFila = cuerpoTabla.rows[cuerpoTabla.rows.length - 1];
+    return Number(ultimaFila.cells[indiceColumnaId].textContent) + 1;
 }
 
-function createNumberInput(placeholder) {
-    var input = document.createElement('input');
-    input.type = 'number';
-    input.min = '0';
-    input.step = '1';
-    input.placeholder = placeholder;
-    input.classList.add('form-control');
-    return input;
+function crearInputNumerico(textoGuia) {
+    var inputNumerico = document.createElement('input');
+    inputNumerico.type = 'number';
+    inputNumerico.min = '0';
+    inputNumerico.step = '1';
+    inputNumerico.placeholder = textoGuia;
+    inputNumerico.classList.add('form-control');
+    return inputNumerico;
 }
 
-function createApprovalSelect() {
-    var select = document.createElement('select');
-    select.classList.add('form-select');
+function crearSelectAprobado() {
+    var selectAprobado = document.createElement('select');
+    selectAprobado.classList.add('form-select');
 
-    var emptyOption = document.createElement('option');
-    emptyOption.value = '';
-    emptyOption.textContent = 'Selecciona';
-    select.appendChild(emptyOption);
+    var opcionVacia = document.createElement('option');
+    opcionVacia.value = '';
+    opcionVacia.textContent = 'Selecciona';
+    selectAprobado.appendChild(opcionVacia);
 
-    var yesOption = document.createElement('option');
-    yesOption.value = 'Si';
-    yesOption.textContent = 'Si';
-    select.appendChild(yesOption);
+    var opcionSi = document.createElement('option');
+    opcionSi.value = 'Si';
+    opcionSi.textContent = 'Si';
+    selectAprobado.appendChild(opcionSi);
 
-    var noOption = document.createElement('option');
-    noOption.value = 'No';
-    noOption.textContent = 'No';
-    select.appendChild(noOption);
+    var opcionNo = document.createElement('option');
+    opcionNo.value = 'No';
+    opcionNo.textContent = 'No';
+    selectAprobado.appendChild(opcionNo);
 
-    return select;
+    return selectAprobado;
 }
 
-function createDeleteButton(row) {
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.classList.add('btn', 'btn-outline-danger', 'btn-sm');
-    button.setAttribute('aria-label', 'Eliminar fila');
-    button.innerHTML = '<i class="bi bi-trash-fill"></i>';
+function crearBotonEliminar(fila) {
+    var boton = document.createElement('button');
+    boton.type = 'button';
+    boton.classList.add('btn', 'btn-outline-danger', 'btn-sm');
+    boton.setAttribute('aria-label', 'Eliminar fila');
+    boton.innerHTML = '<i class="bi bi-trash-fill"></i>';
 
-    button.addEventListener('click', function () {
-        row.remove();
+    boton.addEventListener('click', function () {
+        fila.remove();
     });
 
-    return button;
+    return boton;
 }
 
-function createValueWithDelete(row, value) {
-    var wrapper = document.createElement('div');
-    var text = document.createElement('span');
+function crearValorConEliminar(fila, valor) {
+    var contenedor = document.createElement('div');
+    var texto = document.createElement('span');
 
-    wrapper.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'gap-2');
-    text.textContent = value;
-    wrapper.appendChild(text);
-    wrapper.appendChild(createDeleteButton(row));
+    contenedor.classList.add('d-flex', 'align-items-center', 'justify-content-center', 'gap-2');
+    texto.textContent = valor;
+    contenedor.appendChild(texto);
+    contenedor.appendChild(crearBotonEliminar(fila));
 
-    return wrapper;
+    return contenedor;
 }
 
-function enableRowDeleteButtons() {
-    var table = document.getElementById(datasetTableId);
-    var tBodyRef = table.getElementsByTagName('tbody')[0];
+function activarBotonesEliminarFila() {
+    var tabla = document.getElementById(idTablaDataset);
+    var cuerpoTabla = tabla.getElementsByTagName('tbody')[0];
 
-    for (var row of tBodyRef.rows) {
-        var approvalCell = row.cells[3];
+    for (var fila of cuerpoTabla.rows) {
+        var celdaAprobado = fila.cells[3];
 
-        if (approvalCell.querySelector('button')) {
+        if (celdaAprobado.querySelector('button')) {
             continue;
         }
 
-        var approvalValue = approvalCell.textContent.trim();
-        approvalCell.textContent = '';
-        approvalCell.appendChild(createValueWithDelete(row, approvalValue));
+        var valorAprobado = celdaAprobado.textContent.trim();
+        celdaAprobado.textContent = '';
+        celdaAprobado.appendChild(crearValorConEliminar(fila, valorAprobado));
     }
 }
 
-function createConfirmButton(row, inputs, select) {
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.classList.add('btn', 'btn-primary');
-    button.textContent = 'Añadir';
+function crearBotonConfirmar(fila, inputs, selectAprobado) {
+    var boton = document.createElement('button');
+    boton.type = 'button';
+    boton.classList.add('btn', 'btn-primary');
+    boton.textContent = 'Añadir';
 
-    button.addEventListener('click', function () {
-        var studyHours = inputs.studyHours.value;
-        var mockExam = inputs.mockExam.value;
-        var approval = select.value;
+    boton.addEventListener('click', function () {
+        var horasEstudio = inputs.horasEstudio.value;
+        var notaSimulacro = inputs.notaSimulacro.value;
+        var aprobado = selectAprobado.value;
 
-        if (studyHours === '' || mockExam === '' || approval === '' || mockExam >= 10) {
-            inputs.studyHours.classList.toggle('is-invalid', studyHours === '');
-            inputs.mockExam.classList.toggle('is-invalid', mockExam === '' || mockExam >= 10);
-            select.classList.toggle('is-invalid', approval === '');
+        if (horasEstudio === '' || notaSimulacro === '' || aprobado === '' || notaSimulacro >= 10) {
+            inputs.horasEstudio.classList.toggle('is-invalid', horasEstudio === '');
+            inputs.notaSimulacro.classList.toggle('is-invalid', notaSimulacro === '' || notaSimulacro >= 10);
+            selectAprobado.classList.toggle('is-invalid', aprobado === '');
             return;
         }
 
-        row.classList.remove(pendingRowClass);
-        row.cells[1].textContent = studyHours;
-        row.cells[2].textContent = mockExam;
-        row.cells[3].textContent = '';
-        row.cells[3].appendChild(createValueWithDelete(row, approval));
+        fila.classList.remove(claseFilaPendiente);
+        fila.cells[1].textContent = horasEstudio;
+        fila.cells[2].textContent = notaSimulacro;
+        fila.cells[3].textContent = '';
+        fila.cells[3].appendChild(crearValorConEliminar(fila, aprobado));
     });
 
-    return button;
+    return boton;
 }
 
-function addDatasetRow() {
-    var table = document.getElementById(datasetTableId);
-    var tBodyRef = table.getElementsByTagName('tbody')[0];
-    var pendingRow = tBodyRef.querySelector('.' + pendingRowClass);
+function agregarFilaDataset() {
+    var tabla = document.getElementById(idTablaDataset);
+    var cuerpoTabla = tabla.getElementsByTagName('tbody')[0];
+    var filaPendiente = cuerpoTabla.querySelector('.' + claseFilaPendiente);
 
-    if (pendingRow) {
-        pendingRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (filaPendiente) {
+        filaPendiente.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
     }
 
-    var nextId = getNextId(tBodyRef);
-    var newRow = tBodyRef.insertRow();
-    var idCell = newRow.insertCell();
-    var studyHoursCell = newRow.insertCell();
-    var mockExamCell = newRow.insertCell();
-    var approvalCell = newRow.insertCell();
-    var studyHoursInput = createNumberInput('Horas');
-    var mockExamInput = createNumberInput('Nota');
-    var approvalSelect = createApprovalSelect();
-    var approvalGroup = document.createElement('div');
+    var siguienteId = obtenerSiguienteId(cuerpoTabla);
+    var nuevaFila = cuerpoTabla.insertRow();
+    var celdaId = nuevaFila.insertCell();
+    var celdaHorasEstudio = nuevaFila.insertCell();
+    var celdaNotaSimulacro = nuevaFila.insertCell();
+    var celdaAprobado = nuevaFila.insertCell();
+    var inputHorasEstudio = crearInputNumerico('Horas');
+    var inputNotaSimulacro = crearInputNumerico('Nota');
+    var selectAprobado = crearSelectAprobado();
+    var grupoAprobado = document.createElement('div');
 
-    newRow.classList.add(pendingRowClass);
-    idCell.textContent = nextId;
-    studyHoursCell.appendChild(studyHoursInput);
-    mockExamCell.appendChild(mockExamInput);
+    nuevaFila.classList.add(claseFilaPendiente);
+    celdaId.textContent = siguienteId;
+    celdaHorasEstudio.appendChild(inputHorasEstudio);
+    celdaNotaSimulacro.appendChild(inputNotaSimulacro);
 
-    approvalGroup.classList.add('input-group');
-    approvalGroup.appendChild(approvalSelect);
-    approvalGroup.appendChild(createConfirmButton(newRow, {
-        studyHours: studyHoursInput,
-        mockExam: mockExamInput
-    }, approvalSelect));
-    approvalCell.appendChild(approvalGroup);
+    grupoAprobado.classList.add('input-group');
+    grupoAprobado.appendChild(selectAprobado);
+    grupoAprobado.appendChild(crearBotonConfirmar(nuevaFila, {
+        horasEstudio: inputHorasEstudio,
+        notaSimulacro: inputNotaSimulacro
+    }, selectAprobado));
+    celdaAprobado.appendChild(grupoAprobado);
 }
 
-export { addDatasetRow };
-export { addDatasetRow as addClass };
-export { enableRowDeleteButtons };
-export default addDatasetRow;
+export { agregarFilaDataset };
+export { activarBotonesEliminarFila };
+export default agregarFilaDataset;
