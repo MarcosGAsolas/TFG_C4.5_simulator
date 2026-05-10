@@ -49,9 +49,7 @@ const pasos = [
     },
     {
         tituloPagina: "Elección de Nodos: Ganancia de información",
-        textoPagina: `La elección de nodos se consigue determinando qué subconjunto del conjunto que estamos analizando
-                tiene el Gain Ratio más alto, para poder elegir el mejor candidato y seguir formando nuestro árbol
-                de decisión.`,
+        textoPagina: `Una vez que tenemos tanto la entropia calculada de cada umbral, ahora lo que nos toca saber es cuanto mejora cada umbral la entropia inicial del conjunto.`,
         titulo: "Paso 3: Obtención de la Ganancia de la información de cada Umbral",
         texto: () => ` Ya que tenemos calculada la entropia de los dos umbrales, vamos a ver el siguiente atributo a calcular, que es la:`,
         atributo: "Horas Estudio",
