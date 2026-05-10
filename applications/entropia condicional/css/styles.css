@@ -1,0 +1,95 @@
+/* Display screen size according to Bootstrap thresholds for development purposes */
+/* body::before {
+    content: "XS";
+    color: red;
+    font-size: 2rem;
+    font-weight: bold;
+    position: fixed;
+    top: 0;
+    right: 0;
+}
+
+@media (min-width: 576px) {
+    body::before {
+        content: "SM";
+    }
+}
+
+@media (min-width: 768px) {
+    body::before {
+        content: "MD";
+    }
+}
+
+@media (min-width: 992px) {
+    body::before {
+        content: "LG";
+    }
+}
+
+@media (min-width: 1200px) {
+    body::before {
+        content: "XL";
+    }
+}
+
+@media (min-width: 1400px) {
+    body::before {
+        content: "XXL";
+    }
+} */
+
+
+/* Keep the footer at the bottom of the page, even if the page has too little content to reach the bottom of the screen */
+html {
+    position: relative;
+    min-height: 100%;
+    padding-bottom: 180px;
+}
+
+body {
+    margin-bottom: 180px;
+}
+
+.section-switcher {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4rem;
+    margin-bottom: 1rem;
+}
+
+.section-switcher-current {
+    color: #000;
+    font-size: 2rem;
+    font-weight: 400;
+}
+
+.section-switcher-link {
+    color: #6c757d;
+    font-size: 2rem;
+    font-weight: 400;
+    opacity: 0.45;
+    text-decoration: none;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.section-switcher-link:hover {
+    color: #000;
+    opacity: 0.75;
+}
+
+footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 180px;
+}
+
+
+/* For making the table scroll vertically if it exceeds max-height */
+.table-wrapper {
+    max-height: 450px;
+    overflow: auto;
+    display: inline-block;
+}
