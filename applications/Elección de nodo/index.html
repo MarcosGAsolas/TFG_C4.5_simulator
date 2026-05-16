@@ -3,9 +3,6 @@
 
 <head>
     <script src="../lib/jquery-3.7.1.min.js"></script>
-    <script type="module" src="../lib/input-check.js"></script>
-    <script type="module" src="../lib/entropy-calculator.js"></script>
-    <script type="module" src="js/classNumHandler.js"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" href="styles.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -17,95 +14,61 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de entropia</title>
+    <title>Elección de nodo</title>
 </head>
 
 <body>
-    <!-- Header -->
- <header class="py-3 mb-4 border-bottom bg-body-secondary bg-opacity-75 ">
-
-        <div class="d-flex align-items-center gap-2 ">
-            <a href="https://www.ubu.es" class="d-flex align-items-center me-2 ">
-                <img src="/img/ubulogocolorfull.png" width="100" height="50">
+    <header class="py-3 mb-4 border-bottom bg-body-secondary bg-opacity-75">
+        <div class="d-flex align-items-center gap-2 px-2">
+            <a href="https://www.ubu.es" class="d-flex align-items-center me-2">
+                <img src="/img/ubulogocolorfull.png" width="100" height="50" alt="Universidad de Burgos">
             </a>
-            <a href="../index.html" class="fw-bold fs-5 ms-2 me-2 nav-link link-dark">Simulador árbol de decisión (Algoritmo C4.5) </a> 
-          <div class="d-flex flex-row align-items-center gap-2 ms-auto">
-            <a href="../index.html" class="btn btn-outline-secondary btn-sm">Menu</a>
-            <a href="../entropia/index.html" class="btn btn-outline-secondary btn-sm">Entropia</a>
-            <button class="btn btn-outline-secondary btn-sm">Elección de nodo</button>
-            <button class="btn btn-outline-secondary btn-sm">Árbol de decisión C4.5</button>
-          </div>
+            <a href="../index.html" class="fw-bold fs-5 ms-2 me-2 nav-link link-dark">Simulador árbol de decisión (Algoritmo C4.5)</a>
+            <div class="d-flex flex-row align-items-center gap-2 ms-auto">
+                <a href="../index.html" class="step-btn text-decoration-none">Menu</a>
+                <a href="../entropia/index.html" class="step-btn text-decoration-none">Entropía</a>
+                <span class="step-btn active-step">Elección de nodo</span>
+                <span class="step-btn">Árbol de decisión C4.5</span>
+            </div>
         </div>
     </header>
-   
+
     <main class="container pb-2">
-
-        <!-- Título general -->
-        <div class="pb-1">
-            <p id="titulo-pagina" class="text-center mb-4"></p>
-
-            <p id="texto-pagina" class="fs-5 text-center"></p>
-        </div>
-
-        <!-- Controles del paso a paso -->
         <div class="row justify-content-center gy-3 pt-2 pb-3">
-
-            <div class="col-12 d-flex justify-content-center gap-2 mb-2" aria-label="Controles de pasos">
-
-                <button id="btnInitStep" type="button" class="btn btn-outline-secondary"
-                    aria-label="Ir al paso inicial">
-                    <i class="bi bi-skip-backward-fill"></i>
-                </button>
-
-                <button id="btnStepback" type="button" class="btn btn-outline-secondary"
-                    aria-label="Ir un paso hacia detrás">
-                    <i class="bi bi-caret-left-fill"></i>
-                </button>
-
-                <button id="btnStepForward" type="button" class="btn btn-outline-secondary"
-                    aria-label="Ir un paso hacia delante">
-                    <i class="bi bi-caret-right-fill"></i>
-                </button>
-
-                <button id="btnLastStep" type="button" class="btn btn-outline-secondary"
-                    aria-label="Ir al último paso">
-                    <i class="bi bi-skip-forward-fill"></i>
-                </button>
-
+            <div class="col-12 d-flex flex-wrap justify-content-center gap-4 mb-3" aria-label="Controles de pasos">
+                <button id="btnPasoUmbral" class="step-btn active-step">Umbral</button>
+                <button id="btnPasoGanancia" class="step-btn">Ganancia información</button>
+                <button id="btnPasoSplitInfo" class="step-btn">Split Info</button>
+                <button id="btnPasoGainRatio" class="step-btn">Gain Ratio</button>
+                <button id="btnPasoNodo" class="step-btn">Nodo elegido</button>
             </div>
-            <!-- Título del paso -->
+
             <div class="col-12 text-center">
                 <h2 id="stepTitle" class="h4"></h2>
             </div>
+        </div>
 
-             <!-- Texto + Tabla de datos para elegír el nodo dinámicos -->
-            <div class="col-lg-6">
-                <p id="stepText" class="fs-5 text-center mb-0"></p>
-                <p class="text-center mb-0">
-                    <span id="formulaUmbral"
-                        class="fs-5 fw-bold px-2 rounded">
-                    </span>
-                </p>
+        <div class="row justify-content-center gy-3 pb-3 step-layout-row">
+            <div class="col-lg-6 step-info-column">
                 <div id="infoCardContainer" class="mt-3"></div>
-                <div id="stepExtraContainer" class="mt-3"></div>
+                <div id="formulaUmbral" class="mt-3"></div>
             </div>
 
-             <!-- Tabla dinámica -->
-            <div class="col-lg-6">
+            <div class="col-lg-6 step-data-column">
                 <div id="stepTableContainer"></div>
             </div>
 
+            <div class="col-lg-6 step-results-column">
+                <div id="stepExtraContainer" class="mt-3"></div>
+            </div>
         </div>
-
     </main>
-  
-    </div>
-    <!-- Footer -->
- <footer class="py-3 mt-2 border-top bg-dark text-white">
-        <div class="container d-flex flex-wrap justify-content-between align-items-center ">
+
+    <footer class="py-3 mt-2 border-top bg-dark text-white">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center">
             <div class="col-md-4 col-auto d-flex align-items-center">
                 <ul class="flex-column">
-                    <span class="fw-bold ">Autores:</span>
+                    <span class="fw-bold">Autores:</span>
                     <li class="mb-2 mt-2" style="list-style-type: none;">
                         <span>Marcos Guzmán Asolas</span>
                     </li>
@@ -120,33 +83,28 @@
             <div class="col-md-3 col-auto d-flex align-items-center">
                 <span class="date fw-light"></span>
                 <script>
-                  // Obtiene la ultima actualización del repositorio escogido
-                  fetch("https://api.github.com/repos/MarcosGAsolas/TFG_C4.5_simulator")
-                    .then(res => res.json())
-                    .then(repo => {
-                      let d = new Date(repo.updated_at);
-                      document.querySelector(".date").textContent =
-                        `Ultima actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
-                    });
+                    fetch("https://api.github.com/repos/MarcosGAsolas/TFG_C4.5_simulator")
+                        .then(res => res.json())
+                        .then(repo => {
+                            let d = new Date(repo.updated_at);
+                            document.querySelector(".date").textContent =
+                                `Última actualización: ${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+                        });
                 </script>
             </div>
         </div>
- </footer>
-  <!-- Conexión de botones con stepbystep.js -->
+    </footer>
+
     <script type="module">
-        import {
-            initialStep,
-            stepBack,
-            stepForward,
-            lastStep
-        } from './js/stepbystep.js';
+        import { goToSpecificStep } from './js/stepbystep.js';
 
-        document.querySelector('#btnInitStep').addEventListener('click', initialStep);
-        document.querySelector('#btnStepback').addEventListener('click', stepBack);
-        document.querySelector('#btnStepForward').addEventListener('click', stepForward);
-        document.querySelector('#btnLastStep').addEventListener('click', lastStep);
+        document.querySelector('#btnPasoUmbral').addEventListener('click', () => goToSpecificStep(0));
+        document.querySelector('#btnPasoGanancia').addEventListener('click', () => goToSpecificStep(1));
+        document.querySelector('#btnPasoSplitInfo').addEventListener('click', () => goToSpecificStep(2));
+        document.querySelector('#btnPasoGainRatio').addEventListener('click', () => goToSpecificStep(3));
+        document.querySelector('#btnPasoNodo').addEventListener('click', () => goToSpecificStep(4));
 
-        initialStep();
+        goToSpecificStep(0);
     </script>
 </body>
 
