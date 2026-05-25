@@ -1,734 +1,1018 @@
-// stepbystep.js
-
-import { agregarFilaDataset, activarBotonesEliminarFila } from './classNumHandler.js';
-import { calcularUmbral, calcularEntropiaParaUmbral, calcularGananciaInformacionParaUmbral  } from '../../lib/funcionesCalcAlgC45.js'; 
+import {
+    calcularUmbral,
+    calcularEntropiaParaUmbral,
+    calcularGananciaInformacionParaUmbral
+} from '../../lib/funcionesCalcAlgC45.js';
 
 let currentStep = 0;
 let datosTablaOriginal = null;
-let primerValorUmbral = null;
-let segundoValorUmbral = null;
-let formulaUmbral = null;
-
 
 const pasos = [
     {
-        tituloPagina: "Elección de nodos",
-        textoPagina: `La elección de nodos se consigue determinando qué subconjunto del conjunto que estamos analizando
-                tiene el Gain Ratio más alto, para poder elegir el mejor candidato y seguir formando nuestro árbol
-                de decisión.`,
-        titulo: "Paso 1: Dataset inicial",
-        textoPagina: `La elección de nodos se consigue determinando qué subconjunto del conjunto que estamos analizando tiene el Gain Ratio más alto, para poder elegir el mejor candidato y seguir formando nuestro árbol de decisión.`,
-        texto: `
-            Tenemos este dataset inicial de ejemplo para ver cómo se selecciona un nodo dentro de este dataset
-            y poder explicar de manera adecuada el algoritmo. En este primer paso, puedes añadir o eliminar filas
-            antes de iniciar el cálculo.
-        `,
-        render: renderPasoDatasetInicial
+        titulo: "Cálculo de umbral",
+        texto: "",
+        atributo: "Valor",
+        claseObjetivo: "Clase",
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía"],
+        render: renderPasoUmbral
     },
     {
-        tituloPagina: "Elección de Nodos: Umbral",
-        textoPagina: `Como en el subconjunto no tenemos separaciónes claras de datos, 
-                        necesitamos poner un umbral, para poder sacar nodos y dividirlo en una decisión binaria, 
-                        es decir, el nodo se convertirá, en vez de un número, en si es menor o igual que ese umbral o no. `,
-        titulo: "Paso 2: Ordenación del atributo Horas Estudio y obtención de Umbrales y su Entropia",
-        texto: () => `
-                Como vemos, al ordenar el subconjunto de Horas Estudio, se ordenan también las otras columnas.
-                En este caso nos interesa la columna Aprueba, porque queremos observar cuándo cambia el resultado
-                según recorremos el atributo Horas Estudio.
-
-                Para calcular los umbrales, se escoge el último registro antes del cambio y el primero donde cambia
-                el valor de la clase Aprueba.
-
-                En este ejemplo, uno de los cambios se produce entre los valores
-                ${primerValorUmbral} y ${segundoValorUmbral}.
-            `,
-        atributo: "Horas Estudio",
-        claseObjetivo: "Aprueba",
-        NombreColumnasAñadirTabla: ["Umbral","Umbral calculado","Entropía"],
-        render: renderPasoOrdenacionHoras
-    },
-    {
-        tituloPagina: "Elección de Nodos: Ganancia de información",
-        textoPagina: `Una vez que tenemos tanto la entropia calculada de cada umbral, ahora lo que nos toca saber es cuanto mejora cada umbral la entropia inicial del conjunto.`,
-        titulo: "Paso 3: Obtención de la Ganancia de la información de cada Umbral",
-        texto: () => ` Ya que tenemos calculada la entropia de los dos umbrales, vamos a ver el siguiente atributo a calcular, que es la:`,
-        atributo: "Horas Estudio",
-        claseObjetivo: "Aprueba",
-        NombreColumnasAñadirTabla: ["Umbral","Umbral calculado","Entropía","Ganancia Información"],
+        titulo: "Cálculo de ganancia de la información",
+        texto: "Con los umbrales calculados, se puede medir cuánto reduce cada división la incertidumbre del dataset.",
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información"],
         render: renderPasoGananciaDeInformacion
+    },
+    {
+        titulo: "Split Info",
+        texto: "",
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información", "Split Info"],
+        render: renderPasoSplitInfo
+    },
+    {
+        titulo: "Gain Ratio",
+        texto: "",
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información", "Split Info", "Gain Ratio"],
+        render: renderPasoGainRatio
+    },
+    {
+        titulo: "Nodo elegido",
+        texto: "",
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información", "Split Info", "Gain Ratio"],
+        render: renderPasoNodoElegido
     }
 ];
 
-/**
- * Muestra el paso actual.
- */
 function mostrarPaso() {
     const paso = pasos[currentStep];
 
-    const tituloPagina = document.getElementById("titulo-pagina");
-    if (tituloPagina) {
-
-        if(currentStep === 2){
-            tituloPagina.classList.remove("display-1")
-            tituloPagina.classList.add("display-3")
-        }else{
-            tituloPagina.classList.add("display-1")
-        }
-
-        tituloPagina.textContent = paso.tituloPagina;
-    }
-   
-
-    const textoPagina = document.getElementById("texto-pagina");
-    if (textoPagina) {
-        textoPagina.textContent = paso.textoPagina;
-    }
+    actualizarBotonActivo(currentStep);
 
     const stepTitle = document.getElementById("stepTitle");
     if (stepTitle) {
         stepTitle.textContent = paso.titulo;
     }
-    const stepExtraContainer = document.getElementById("stepExtraContainer");
-    if (stepExtraContainer) {
-        limpiarElemento(stepExtraContainer);
+
+    const stepText = document.getElementById("stepText");
+    if (stepText) {
+        stepText.textContent = paso.texto;
+    }
+
+    limpiarElementoPorId("infoCardContainer");
+    limpiarElementoPorId("formulaUmbral");
+    limpiarElementoPorId("stepTableContainer");
+    limpiarElementoPorId("stepExtraContainer");
+    actualizarLayoutResultados(false);
+
+    const infoCardContainer = document.getElementById("infoCardContainer");
+    if (infoCardContainer && currentStep === 0) {
+        infoCardContainer.appendChild(crearInfoCardUmbral());
+    }
+
+    if (infoCardContainer && currentStep === 1) {
+        infoCardContainer.appendChild(crearInfoCardGananciaInformacion());
+    }
+
+    if (infoCardContainer && currentStep === 2) {
+        infoCardContainer.appendChild(crearInfoCardSplitInfo());
+    }
+
+    if (infoCardContainer && currentStep === 3) {
+        infoCardContainer.appendChild(crearInfoCardGainRatio());
+    }
+
+    if (infoCardContainer && currentStep === 4) {
+        infoCardContainer.appendChild(crearInfoCardNodoElegido());
+    }
+
+    const formulaUmbral = document.getElementById("formulaUmbral");
+    if (formulaUmbral && currentStep === 0) {
+        formulaUmbral.appendChild(crearCalculadoraUmbralManual());
+    }
+
+    if (formulaUmbral && currentStep === 1) {
+        formulaUmbral.appendChild(crearCalculadoraGananciaInformacionManual());
+    }
+
+    if (formulaUmbral && currentStep === 2) {
+        formulaUmbral.appendChild(crearCalculadoraSplitInfoManual());
+    }
+
+    if (formulaUmbral && currentStep === 3) {
+        formulaUmbral.appendChild(crearCalculadoraGainRatioManual());
+    }
+
+    if (formulaUmbral && currentStep === 4) {
+        formulaUmbral.appendChild(crearVisualizadorNodoElegido());
     }
 
     const tableContainer = document.getElementById("stepTableContainer");
     if (tableContainer) {
-        limpiarElemento(tableContainer);
         paso.render(tableContainer, paso);
     }
 
-    const stepText = document.getElementById("stepText");
-    if (stepText) {
-        stepText.textContent =
-            typeof paso.texto === "function"
-                ? paso.texto()
-                : paso.texto;
-    }
+    renderizarMathJax();
+}
 
-    const formulaUmbral = document.getElementById("formulaUmbral");
-    if(currentStep !== 1){
-        limpiarElemento(formulaUmbral);
-        formulaUmbral.classList.remove("bg-warning")
-    }
+function limpiarElementoPorId(idElemento) {
+    const elemento = document.getElementById(idElemento);
+    if (!elemento) return;
 
-    
-    if(currentStep === 1){
-        
-        if (formulaUmbral) {
-            formulaUmbral.classList.add("bg-warning")
-            formulaUmbral.textContent = "Formula para calcular el Umbral: n1 + n2 / 2";
-        }
-    }
-
-    const infoCardContainer = document.getElementById("infoCardContainer");
-    if (infoCardContainer) {
-        limpiarElemento(infoCardContainer);
-
-        if (currentStep === 2) {
-            infoCardContainer.appendChild(crearInfoCardGananciaInformacion());
-        }
+    while (elemento.firstChild) {
+        elemento.removeChild(elemento.firstChild);
     }
 }
 
-/**
- * Limpia todo el contenido de un elemento.
- */
 function limpiarElemento(elemento) {
     while (elemento.firstChild) {
-        primerValorUmbral = null;
-        segundoValorUmbral = null;
-        formulaUmbral = null;
         elemento.removeChild(elemento.firstChild);
-    } 
+    }
 }
 
-/**
- * Crea una celda td.
- */
+function actualizarLayoutResultados(mostrarResultados) {
+    const resultsContainer = document.getElementById("stepExtraContainer");
+    const workspace = resultsContainer ? resultsContainer.parentElement : null;
+    const row = workspace ? workspace.closest(".step-layout-row") : null;
+
+    if (workspace) {
+        workspace.classList.toggle("threshold-results-layout", mostrarResultados);
+    }
+
+    if (row) {
+        row.classList.toggle("threshold-results-active", mostrarResultados);
+    }
+}
+
 function crearCelda(texto, clases = []) {
     const celda = document.createElement("td");
     celda.textContent = texto;
-
-    clases.forEach(clase => {
-        celda.classList.add(clase);
-    });
-
+    clases.forEach(clase => celda.classList.add(clase));
     return celda;
 }
 
-/**
- * Crea una celda th.
- */
 function crearCeldaCabecera(texto, clases = []) {
     const celda = document.createElement("th");
     celda.textContent = texto;
-
-    clases.forEach(clase => {
-        celda.classList.add(clase);
-    });
-
+    clases.forEach(clase => celda.classList.add(clase));
     return celda;
 }
 
-/**
- * Crea botón.
- */
 function crearBoton(texto, clases = []) {
     const boton = document.createElement("button");
     boton.type = "button";
     boton.textContent = texto;
-
-    clases.forEach(clase => {
-        boton.classList.add(clase);
-    });
-
+    clases.forEach(clase => boton.classList.add(clase));
     return boton;
 }
 
-/**
- * Paso 1: tabla inicial editable.
- */
-function renderPasoDatasetInicial(container) {
-    const wrapper = document.createElement("div");
-    wrapper.classList.add("table-responsive");
-
-    const table = document.createElement("table");
-    table.setAttribute("id", "table-dataset");
-    table.classList.add(
-        "table",
-        "table-striped",
-        "table-hover",
-        "align-middle",
-        "text-center"
-    );
-
-    const thead = crearCabeceraDatasetInicial();
-    const tbody = crearCuerpoDatasetInicial();
-    const tfoot = crearPieDatasetInicial();
-
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    table.appendChild(tfoot);
-
-    wrapper.appendChild(table);
-    container.appendChild(wrapper);
-
-    const btnAdd = document.getElementById("btnAddDatasetRow");
-    if (btnAdd) {
-        btnAdd.addEventListener("click", agregarFilaDataset);
-    }
-
-    activarBotonesEliminarFila();
+function crearInput(tipo, valor = "") {
+    const input = document.createElement("input");
+    input.type = tipo;
+    input.value = valor;
+    input.classList.add("form-control");
+    return input;
 }
 
-/**
- * Crea la cabecera de la tabla inicial.
- */
-function crearCabeceraDatasetInicial() {
-    const thead = document.createElement("thead");
-    thead.classList.add("table-dark");
-
-    const row = document.createElement("tr");
-
-    const columnas = [
-        "ID",
-        "Horas Estudio",
-        "Nota Simulacro",
-        "Aprueba"
-    ];
-
-    columnas.forEach(nombreColumna => {
-        const th = crearCeldaCabecera(nombreColumna);
-        th.setAttribute("scope", "col");
-        row.appendChild(th);
-    });
-
-    thead.appendChild(row);
-
-    return thead;
+function renderPasoUmbral(container) {
+    container.appendChild(crearTablaEntradaUmbral());
+    renderizarTablasResultadoUmbral(["Valor", "Clase"], [], [], pasos[0].columnasResultado, true);
+    actualizarLayoutResultados(true);
 }
 
-/**
- * Crea el cuerpo de la tabla inicial con los datos de ejemplo.
- */
-function crearCuerpoDatasetInicial() {
-    const tbody = document.createElement("tbody");
-
-    const filas = [
-        [1, 6, 7, "Si"],
-        [2, 2, 4, "No"],
-        [3, 5, 6, "Si"],
-        [4, 3, 5, "No"],
-        [5, 7, 8, "Si"],
-        [6, 4, 5, "Si"],
-        [7, 1, 3, "No"],
-        [8, 8, 9, "No"]
-    ];
-
-    filas.forEach(fila => {
-        const tr = crearFilaDatasetInicial(fila);
-        tbody.appendChild(tr);
-    });
-
-    return tbody;
+function renderPasoGananciaDeInformacion(container, paso) {
+    container.appendChild(crearTablaEntradaUmbral());
+    renderizarTablasResultadoUmbral(["Valor", "Clase"], [], [], paso.columnasResultado, true);
+    actualizarLayoutResultados(true);
 }
 
-/**
- * Crea una fila de la tabla inicial.
- */
-function crearFilaDatasetInicial(fila) {
-    const tr = document.createElement("tr");
-
-    fila.forEach(valor => {
-        const td = crearCelda(valor);
-        tr.appendChild(td);
-    });
-
-    return tr;
+function renderPasoSplitInfo(container, paso) {
+    container.appendChild(crearTablaEntradaUmbral());
+    renderizarTablasResultadoUmbral(["Valor", "Clase"], [], [], paso.columnasResultado, true);
+    actualizarLayoutResultados(true);
 }
 
-/**
- * Crea el pie de la tabla inicial.
- */
-function crearPieDatasetInicial() {
-    const tfoot = document.createElement("tfoot");
-    const tr = document.createElement("tr");
-
-    const td = document.createElement("td");
-    td.colSpan = 5;
-
-    const boton = crearBoton("+ fila", [
-        "btn",
-        "btn-outline-primary"
-    ]);
-
-    boton.setAttribute("id", "btnAddDatasetRow");
-
-    td.appendChild(boton);
-    tr.appendChild(td);
-    tfoot.appendChild(tr);
-
-    return tfoot;
+function renderPasoGainRatio(container, paso) {
+    container.appendChild(crearTablaEntradaUmbral());
+    renderizarTablasResultadoUmbral(["Valor", "Clase"], [], [], paso.columnasResultado, true);
+    actualizarLayoutResultados(true);
 }
 
-/**
- * Paso 2: tabla ordenada por Horas Estudio.
- */
-function renderPasoOrdenacionHoras(container, paso) {
-    const datos = datosTablaOriginal;
+function renderPasoNodoElegido(container, paso) {
+    container.appendChild(crearTablaEntradaUmbral());
+    renderizarTablasResultadoUmbral(["Valor", "Clase"], [], [], paso.columnasResultado, true);
+    actualizarLayoutResultados(true);
+}
 
-    const resultado = obtenerDatosOrdenadosPorAtributo(
-        datos,
-        paso.atributo,
-        paso.claseObjetivo
-    );
+function crearTablaEntradaUmbral() {
+    const bloque = document.createElement("div");
+    bloque.classList.add("threshold-table-card");
+    const textoAccion = obtenerTextoAccionCalculo();
 
-    const cambios = obtenerCambiosDeClase(resultado.filas);
+    const encabezado = document.createElement("div");
+    encabezado.classList.add("threshold-table-header");
+
+    const titulo = document.createElement("h3");
+    titulo.classList.add("threshold-table-title");
+    titulo.textContent = "Tabla de datos";
+
+    const intro = document.createElement("div");
+    intro.classList.add("threshold-table-intro");
+
+    const subtitulo = document.createElement("p");
+    subtitulo.classList.add("threshold-table-description");
+    subtitulo.textContent = `Genera valores aleatorios para completar la tabla y calcular ${textoAccion.descripcion}.`;
+
+    encabezado.appendChild(titulo);
+    intro.appendChild(subtitulo);
 
     const wrapper = document.createElement("div");
-    wrapper.classList.add("table-responsive");
+    wrapper.classList.add("table-responsive", "threshold-table-scroll");
 
     const table = document.createElement("table");
-    table.classList.add(
-        "table",
-        "table-striped",
-        "table-hover",
-        "align-middle",
-        "text-center"
-    );
-
-    const thead = crearCabeceraTablaOrdenada(resultado.cabecera);
-    const tbody = crearCuerpoTablaOrdenada(resultado.filas, cambios);
-
-    table.appendChild(thead);
-    table.appendChild(tbody);
-
-    wrapper.appendChild(table);
-    container.appendChild(wrapper);
-
-    const stepExtraContainer = document.getElementById("stepExtraContainer");
-    if (stepExtraContainer) {
-        limpiarElemento(stepExtraContainer);
-        stepExtraContainer.appendChild(crearTablaUmbrales(cambios, resultado.filas, paso.NombreColumnasAñadirTabla));
-    }
-}
-
-
-/**
- * Crea una tabla con los umbrales candidatos.
- */
-function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas) {
-    const wrapper = document.createElement("div");
-    wrapper.classList.add("table-responsive");
-
-    const table = document.createElement("table");
-    table.classList.add(
-        "table",
-        "table-bordered",
-        "table-hover",
-        "align-middle",
-        "text-center",
-        "mt-3"
-    );
+    table.id = "tabla-datos-umbral";
+    table.classList.add("table", "align-middle", "text-center", "threshold-data-table");
 
     const thead = document.createElement("thead");
-    thead.classList.add("table-dark");
-
     const trHead = document.createElement("tr");
 
-    nombresColumnas.forEach(nombreColumna => {
-        const th = crearCeldaCabecera(nombreColumna);
-        trHead.appendChild(th);
-    });
+    const thValor = crearCeldaCabecera("Valor");
+    const thClase = crearCeldaCabecera("Clase");
 
+    trHead.appendChild(thValor);
+    trHead.appendChild(thClase);
     thead.appendChild(trHead);
-    table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
+    tbody.id = "cuerpo-tabla-umbral";
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    bloque.appendChild(encabezado);
+    bloque.appendChild(intro);
+    bloque.appendChild(crearGeneradorTablaUmbral());
+    bloque.appendChild(wrapper);
+
+    const acciones = document.createElement("div");
+    acciones.classList.add("threshold-table-actions");
+
+    const botonCalcular = crearBoton("", ["btn", "btn-dark", "threshold-calc-btn"]);
+    botonCalcular.innerHTML = `<i class="bi bi-calculator" aria-hidden="true"></i><span>${textoAccion.boton}</span>`;
+    botonCalcular.addEventListener("click", calcularUmbralesDeTabla);
+    acciones.appendChild(botonCalcular);
+    bloque.appendChild(acciones);
+
+    return bloque;
+}
+
+function obtenerTextoAccionCalculo() {
+    if (currentStep === 1) {
+        return {
+            boton: "Calcular ganancia",
+            descripcion: "la ganancia de información de cada umbral"
+        };
+    }
+
+    if (currentStep === 2) {
+        return {
+            boton: "Calcular Split Info",
+            descripcion: "el Split Info de cada umbral"
+        };
+    }
+
+    if (currentStep === 3) {
+        return {
+            boton: "Calcular Gain Ratio",
+            descripcion: "el Gain Ratio de cada umbral"
+        };
+    }
+
+    if (currentStep === 4) {
+        return {
+            boton: "Elegir nodo",
+            descripcion: "el nodo con mejor Gain Ratio"
+        };
+    }
+
+    return {
+        boton: "Calcular umbrales",
+        descripcion: "los umbrales candidatos"
+    };
+}
+
+function crearGeneradorTablaUmbral() {
+    const generador = document.createElement("div");
+    generador.classList.add("threshold-generator");
+
+    const campos = [
+        {
+            id: "generador-min-umbral",
+            label: "Mínimo",
+            type: "number",
+            value: "1",
+            min: "0"
+        },
+        {
+            id: "generador-max-umbral",
+            label: "Máximo",
+            type: "number",
+            value: "20",
+            min: "0"
+        },
+        {
+            id: "generador-clases-umbral",
+            label: "Clases posibles",
+            type: "text",
+            value: "Si, No",
+            placeholder: "Si, No, Tal vez"
+        },
+        {
+            id: "generador-filas-umbral",
+            label: "Filas",
+            type: "number",
+            value: "8",
+            min: "2"
+        }
+    ];
+
+    campos.forEach(campo => {
+        const grupo = document.createElement("label");
+        grupo.classList.add("threshold-generator-field");
+
+        const texto = document.createElement("span");
+        texto.textContent = campo.label;
+
+        const input = crearInput(campo.type, campo.value);
+        input.id = campo.id;
+
+        if (campo.min != null) {
+            input.min = campo.min;
+        }
+
+        if (campo.placeholder != null) {
+            input.placeholder = campo.placeholder;
+        }
+
+        if (campo.type === "number") {
+            input.step = "1";
+            input.addEventListener("input", () => {
+                if (Number(input.value) < 0) {
+                    input.value = "0";
+                }
+            });
+        }
+
+        grupo.appendChild(texto);
+        grupo.appendChild(input);
+        generador.appendChild(grupo);
+    });
+
+    const botonGenerar = crearBoton("", ["btn", "btn-outline-dark", "threshold-generate-btn"]);
+    botonGenerar.innerHTML = '<i class="bi bi-shuffle" aria-hidden="true"></i><span>Generar tabla</span>';
+    botonGenerar.addEventListener("click", generarTablaUmbralAleatoria);
+    generador.appendChild(botonGenerar);
+
+    return generador;
+}
+
+function agregarFilaTablaUmbral(valor = "", clase = "") {
+    const tbody = document.getElementById("cuerpo-tabla-umbral");
+    if (!tbody) return;
+
+    const tr = document.createElement("tr");
+
+    const tdValor = document.createElement("td");
+    const inputValor = crearInput("number", valor);
+    inputValor.step = "any";
+    inputValor.min = "0";
+    inputValor.addEventListener("input", () => {
+        if (Number(inputValor.value) < 0) {
+            inputValor.value = "0";
+        }
+    });
+    tdValor.appendChild(inputValor);
+
+    const tdClase = document.createElement("td");
+    const inputClase = crearInput("text", clase);
+    inputClase.addEventListener("input", () => {
+        inputClase.value = inputClase.value.replace(/[0-9]/g, "");
+    });
+    tdClase.appendChild(inputClase);
+
+    tr.appendChild(tdValor);
+    tr.appendChild(tdClase);
+    tbody.appendChild(tr);
+}
+
+function generarTablaUmbralAleatoria() {
+    const minInput = document.getElementById("generador-min-umbral");
+    const maxInput = document.getElementById("generador-max-umbral");
+    const clasesInput = document.getElementById("generador-clases-umbral");
+    const filasInput = document.getElementById("generador-filas-umbral");
+    const tbody = document.getElementById("cuerpo-tabla-umbral");
+    const contenedorResultados = document.getElementById("stepExtraContainer");
+
+    if (!minInput || !maxInput || !clasesInput || !filasInput || !tbody) return;
+
+    if (contenedorResultados) {
+        renderizarTablasResultadoUmbral(["Valor", "Clase"], [], [], pasos[currentStep].columnasResultado, true);
+    }
+
+    limpiarNodoElegido();
+    actualizarLayoutResultados(true);
+
+    const minimo = Number(minInput.value);
+    const maximo = Number(maxInput.value);
+    const numeroFilas = Number(filasInput.value);
+    const clases = clasesInput.value
+        .split(",")
+        .map(clase => clase.trim())
+        .filter(clase => clase !== "" && !/[0-9]/.test(clase));
+
+    if (!Number.isFinite(minimo) || !Number.isFinite(maximo) || minimo < 0 || maximo < 0) {
+        mostrarErrorGenerador("El rango debe tener números válidos y positivos.");
+        return;
+    }
+
+    if (minimo > maximo) {
+        mostrarErrorGenerador("El mínimo no puede ser mayor que el máximo.");
+        return;
+    }
+
+    if (!Number.isInteger(numeroFilas) || numeroFilas < 2) {
+        mostrarErrorGenerador("El número de filas debe ser al menos 2.");
+        return;
+    }
+
+    if (clases.length === 0) {
+        mostrarErrorGenerador("Escribe al menos una clase sin números, separada por comas.");
+        return;
+    }
+
+    limpiarErrorGenerador();
+    limpiarElemento(tbody);
+
+    for (let i = 0; i < numeroFilas; i++) {
+        const valor = generarEnteroAleatorio(minimo, maximo);
+        const clase = clases[generarEnteroAleatorio(0, clases.length - 1)];
+        agregarFilaTablaUmbral(String(valor), clase);
+    }
+}
+
+function generarEnteroAleatorio(minimo, maximo) {
+    return Math.floor(Math.random() * (maximo - minimo + 1)) + minimo;
+}
+
+function mostrarErrorGenerador(texto) {
+    limpiarErrorGenerador();
+
+    const generador = document.querySelector(".threshold-generator");
+    if (!generador) return;
+
+    const mensaje = document.createElement("p");
+    mensaje.id = "threshold-generator-error";
+    mensaje.classList.add("threshold-generator-error");
+    mensaje.textContent = texto;
+    generador.appendChild(mensaje);
+}
+
+function limpiarErrorGenerador() {
+    const mensaje = document.getElementById("threshold-generator-error");
+    if (mensaje) {
+        mensaje.remove();
+    }
+}
+
+function calcularUmbralesDeTabla() {
+    const contenedorResultados = document.getElementById("stepExtraContainer");
+    if (!contenedorResultados) return;
+
+    try {
+        datosTablaOriginal = obtenerDatosTablaUmbral();
+    } catch (error) {
+        limpiarElemento(contenedorResultados);
+        contenedorResultados.appendChild(crearMensaje(error.message));
+        return;
+    }
+
+    const resultado = obtenerDatosOrdenadosPorAtributo(datosTablaOriginal, datosTablaOriginal[0][0], datosTablaOriginal[0][1]);
+    const cambios = obtenerCambiosDeClase(resultado.filas);
+
+    renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado);
+    if (currentStep === 4) {
+        renderizarNodoElegido(resultado.cabecera[0], resultado.filas, cambios);
+    }
+    actualizarLayoutResultados(true);
+}
+
+function renderizarTablasResultadoUmbral(cabecera, filas, cambios, nombresColumnas, mostrarVacias = false) {
+    const contenedorResultados = document.getElementById("stepExtraContainer");
+    if (!contenedorResultados) return;
+
+    limpiarElemento(contenedorResultados);
+    contenedorResultados.appendChild(crearTablaOrdenada(cabecera, filas, cambios, mostrarVacias));
+    contenedorResultados.appendChild(crearTablaUmbrales(cambios, filas, nombresColumnas, mostrarVacias));
+}
+
+function obtenerDatosTablaUmbral() {
+    const filas = document.querySelectorAll("#cuerpo-tabla-umbral tr");
+
+    if (filas.length < 2) {
+        throw new Error("Añade al menos dos filas para poder calcular umbrales.");
+    }
+
+    const datos = [["Valor", "Clase"]];
+
+    filas.forEach(fila => {
+        const valor = fila.cells[0].querySelector("input").value.trim();
+        const clase = fila.cells[1].querySelector("input").value.trim();
+
+        if (valor === "" || clase === "") {
+            throw new Error("Completa todas las filas antes de calcular.");
+        }
+
+        const valorNumerico = Number(valor);
+
+        if (!Number.isFinite(valorNumerico)) {
+            throw new Error("Los valores numéricos deben ser válidos.");
+        }
+
+        if (valorNumerico < 0) {
+            throw new Error("Los valores numéricos no pueden ser negativos.");
+        }
+
+        datos.push([valor, clase]);
+    });
+
+    return datos;
+}
+
+function crearCalculadoraUmbralManual() {
+    const bloque = document.createElement("div");
+    bloque.classList.add("border", "rounded", "p-3");
+
+    const titulo = document.createElement("p");
+    titulo.classList.add("fw-semibold", "mb-2");
+    titulo.textContent = "Probar la ecuación del umbral";
+
+    const formula = document.createElement("p");
+    formula.classList.add("mb-3");
+    formula.textContent = "\\(Umbral = \\frac{n_1 + n_2}{2}\\)";
+
+    const fila = document.createElement("div");
+    fila.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
+
+    const valor1 = crearInput("number");
+    valor1.placeholder = "n1";
+    valor1.step = "any";
+
+    const valor2 = crearInput("number");
+    valor2.placeholder = "n2";
+    valor2.step = "any";
+
+    const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    const resultado = document.createElement("span");
+    resultado.classList.add("fw-semibold");
+
+    boton.addEventListener("click", () => {
+        const n1 = Number(valor1.value);
+        const n2 = Number(valor2.value);
+
+        if (valor1.value === "" || valor2.value === "" || Number.isNaN(n1) || Number.isNaN(n2)) {
+            resultado.textContent = "Introduce dos números.";
+            return;
+        }
+
+        resultado.textContent = `Umbral: ${calcularUmbral(n1, n2).toFixed(2)}`;
+    });
+
+    fila.appendChild(valor1);
+    fila.appendChild(valor2);
+    fila.appendChild(boton);
+    fila.appendChild(resultado);
+
+    bloque.appendChild(titulo);
+    bloque.appendChild(formula);
+    bloque.appendChild(fila);
+
+    return bloque;
+}
+
+function crearCalculadoraGananciaInformacionManual() {
+    const bloque = document.createElement("div");
+    bloque.classList.add("border", "rounded", "p-3");
+
+    const titulo = document.createElement("p");
+    titulo.classList.add("fw-semibold", "mb-2");
+    titulo.textContent = "Probar la ecuación de ganancia de información";
+
+    const formula = document.createElement("p");
+    formula.classList.add("mb-3");
+    formula.textContent = "\\(Gain = E(S) - E(S \\mid A)\\)";
+
+    const fila = document.createElement("div");
+    fila.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
+
+    const entropiaOriginal = crearInput("number");
+    entropiaOriginal.placeholder = "E(S)";
+    entropiaOriginal.step = "any";
+    entropiaOriginal.min = "0";
+
+    const entropiaDivision = crearInput("number");
+    entropiaDivision.placeholder = "E(S|A)";
+    entropiaDivision.step = "any";
+    entropiaDivision.min = "0";
+
+    const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    const resultado = document.createElement("span");
+    resultado.classList.add("fw-semibold");
+
+    boton.addEventListener("click", () => {
+        const original = Number(entropiaOriginal.value);
+        const division = Number(entropiaDivision.value);
+
+        if (
+            entropiaOriginal.value === "" ||
+            entropiaDivision.value === "" ||
+            Number.isNaN(original) ||
+            Number.isNaN(division)
+        ) {
+            resultado.textContent = "Introduce dos números.";
+            return;
+        }
+
+        resultado.textContent = `Ganancia: ${(original - division).toFixed(2)}`;
+    });
+
+    fila.appendChild(entropiaOriginal);
+    fila.appendChild(entropiaDivision);
+    fila.appendChild(boton);
+    fila.appendChild(resultado);
+
+    bloque.appendChild(titulo);
+    bloque.appendChild(formula);
+    bloque.appendChild(fila);
+
+    return bloque;
+}
+
+function crearCalculadoraSplitInfoManual() {
+    const bloque = document.createElement("div");
+    bloque.classList.add("border", "rounded", "p-3");
+
+    const titulo = document.createElement("p");
+    titulo.classList.add("fw-semibold", "mb-2");
+    titulo.textContent = "Probar la ecuación de Split Info";
+
+    const formula = document.createElement("p");
+    formula.classList.add("mb-2");
+    formula.textContent = "\\(SplitInfo = - \\sum p_i \\log_2(p_i)\\)";
+
+    const ayuda = document.createElement("p");
+    ayuda.classList.add("small", "text-body-secondary", "mb-3");
+    ayuda.textContent = "Cada grupo es el número de filas que caen en una rama de la división. Por ejemplo: filas con valor <= umbral y filas con valor > umbral.";
+
+    const grupos = document.createElement("div");
+    grupos.classList.add("d-grid", "gap-2", "mb-3");
+    grupos.appendChild(crearCampoGrupoSplitInfo(1, "Filas <= umbral"));
+    grupos.appendChild(crearCampoGrupoSplitInfo(2, "Filas > umbral"));
+
+    const acciones = document.createElement("div");
+    acciones.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
+
+    const botonAgregar = crearBoton("Añadir grupo", ["btn", "btn-outline-secondary"]);
+    const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    const resultado = document.createElement("span");
+    resultado.classList.add("fw-semibold");
+
+    botonAgregar.addEventListener("click", () => {
+        grupos.appendChild(crearCampoGrupoSplitInfo(grupos.children.length + 1, "Filas del grupo"));
+    });
+
+    boton.addEventListener("click", () => {
+        const valores = Array.from(grupos.querySelectorAll("input")).map(input => ({
+            texto: input.value,
+            valor: Number(input.value)
+        }));
+
+        if (
+            valores.some(item => item.texto === "" || Number.isNaN(item.valor) || item.valor < 0) ||
+            valores.reduce((total, item) => total + item.valor, 0) === 0
+        ) {
+            resultado.textContent = "Introduce tamaños de grupo válidos.";
+            return;
+        }
+
+        resultado.textContent = `Split Info: ${calcularSplitInfoDeTamanos(...valores.map(item => item.valor)).toFixed(2)}`;
+    });
+
+    acciones.appendChild(botonAgregar);
+    acciones.appendChild(boton);
+    acciones.appendChild(resultado);
+
+    bloque.appendChild(titulo);
+    bloque.appendChild(formula);
+    bloque.appendChild(ayuda);
+    bloque.appendChild(grupos);
+    bloque.appendChild(acciones);
+
+    return bloque;
+}
+
+function crearCampoGrupoSplitInfo(indice, placeholder) {
+    const etiqueta = document.createElement("label");
+    etiqueta.classList.add("d-grid", "gap-1", "small", "fw-semibold");
+
+    const texto = document.createElement("span");
+    texto.textContent = `Grupo ${indice}`;
+
+    const input = crearInput("number");
+    input.placeholder = placeholder;
+    input.step = "1";
+    input.min = "0";
+
+    etiqueta.appendChild(texto);
+    etiqueta.appendChild(input);
+
+    return etiqueta;
+}
+
+function crearCalculadoraGainRatioManual() {
+    const bloque = document.createElement("div");
+    bloque.classList.add("border", "rounded", "p-3");
+
+    const titulo = document.createElement("p");
+    titulo.classList.add("fw-semibold", "mb-2");
+    titulo.textContent = "Probar la ecuación de Gain Ratio";
+
+    const formula = document.createElement("p");
+    formula.classList.add("mb-3");
+    formula.textContent = "\\(GainRatio = \\frac{Gain}{SplitInfo}\\)";
+
+    const fila = document.createElement("div");
+    fila.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
+
+    const ganancia = crearInput("number");
+    ganancia.placeholder = "Gain";
+    ganancia.step = "any";
+    ganancia.min = "0";
+
+    const splitInfo = crearInput("number");
+    splitInfo.placeholder = "Split Info";
+    splitInfo.step = "any";
+    splitInfo.min = "0";
+
+    const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    const resultado = document.createElement("span");
+    resultado.classList.add("fw-semibold");
+
+    boton.addEventListener("click", () => {
+        const valorGanancia = Number(ganancia.value);
+        const valorSplitInfo = Number(splitInfo.value);
+
+        if (
+            ganancia.value === "" ||
+            splitInfo.value === "" ||
+            Number.isNaN(valorGanancia) ||
+            Number.isNaN(valorSplitInfo) ||
+            valorSplitInfo <= 0
+        ) {
+            resultado.textContent = "Introduce valores válidos.";
+            return;
+        }
+
+        resultado.textContent = `Gain Ratio: ${(valorGanancia / valorSplitInfo).toFixed(2)}`;
+    });
+
+    fila.appendChild(ganancia);
+    fila.appendChild(splitInfo);
+    fila.appendChild(boton);
+    fila.appendChild(resultado);
+
+    bloque.appendChild(titulo);
+    bloque.appendChild(formula);
+    bloque.appendChild(fila);
+
+    return bloque;
+}
+
+function crearVisualizadorNodoElegido() {
+    const bloque = document.createElement("div");
+    bloque.classList.add("border", "rounded", "p-3");
+
+    const titulo = document.createElement("p");
+    titulo.classList.add("fw-semibold", "mb-2");
+    titulo.textContent = "Generar nodo elegido";
+
+    const ayuda = document.createElement("p");
+    ayuda.classList.add("small", "text-body-secondary", "mb-3");
+    ayuda.textContent = "El nodo se construye con el umbral que tenga mayor Gain Ratio. La rama Sí contiene los valores menores o iguales al umbral; la rama No contiene los valores mayores.";
+
+    const preview = document.createElement("div");
+    preview.id = "selectedNodePreview";
+    preview.classList.add("chosen-node-preview");
+
+    bloque.appendChild(titulo);
+    bloque.appendChild(ayuda);
+    bloque.appendChild(preview);
+
+    limpiarNodoElegido(preview);
+
+    return bloque;
+}
+
+function limpiarNodoElegido(contenedor = document.getElementById("selectedNodePreview")) {
+    if (!contenedor) return;
+
+    limpiarElemento(contenedor);
+    const mensaje = document.createElement("p");
+    mensaje.classList.add("text-body-secondary", "mb-0");
+    mensaje.textContent = "Genera datos y pulsa Elegir nodo para ver el resultado.";
+    contenedor.appendChild(mensaje);
+}
+
+function renderizarNodoElegido(nombreAtributo, filasOrdenadas, cambios) {
+    const contenedor = document.getElementById("selectedNodePreview");
+    if (!contenedor) return;
+
+    limpiarElemento(contenedor);
 
     if (cambios.length === 0) {
+        const mensaje = document.createElement("p");
+        mensaje.classList.add("text-body-secondary", "mb-0");
+        mensaje.textContent = "No hay cambios de clase suficientes para elegir un nodo.";
+        contenedor.appendChild(mensaje);
+        return;
+    }
+
+    const mejorCambio = cambios.reduce((mejor, cambio) => {
+        const gainRatioActual = calcularGainRatioParaUmbral(filasOrdenadas, cambio.umbral);
+        const gainRatioMejor = calcularGainRatioParaUmbral(filasOrdenadas, mejor.umbral);
+        return gainRatioActual > gainRatioMejor ? cambio : mejor;
+    }, cambios[0]);
+
+    const umbral = mejorCambio.umbral;
+    const filasSi = filasOrdenadas.filter(fila => Number(fila[0]) <= umbral);
+    const filasNo = filasOrdenadas.filter(fila => Number(fila[0]) > umbral);
+
+    const nodo = document.createElement("div");
+    nodo.classList.add("chosen-node-box");
+    nodo.textContent = `${nombreAtributo} <= ${umbral.toFixed(1)} ?`;
+
+    const ramas = document.createElement("div");
+    ramas.classList.add("chosen-node-branches");
+
+    ramas.appendChild(crearRamaNodoElegido("Si", "left", obtenerResultadoRamaNodo(filasSi)));
+    ramas.appendChild(crearRamaNodoElegido("No", "right", obtenerResultadoRamaNodo(filasNo)));
+
+    contenedor.appendChild(nodo);
+    contenedor.appendChild(ramas);
+}
+
+function crearRamaNodoElegido(etiqueta, direccion, resultado) {
+    const rama = document.createElement("div");
+    rama.classList.add("chosen-node-branch", `chosen-node-branch-${direccion}`);
+
+    const flecha = document.createElement("div");
+    flecha.classList.add("chosen-node-arrow");
+
+    const textoFlecha = document.createElement("span");
+    textoFlecha.textContent = etiqueta;
+    flecha.appendChild(textoFlecha);
+
+    const hoja = document.createElement("div");
+    hoja.classList.add("chosen-node-leaf");
+    hoja.textContent = resultado;
+
+    rama.appendChild(flecha);
+    rama.appendChild(hoja);
+
+    return rama;
+}
+
+function obtenerResultadoRamaNodo(filas) {
+    const clases = [...new Set(filas.map(fila => fila[1]))];
+    return clases.length === 1 ? clases[0] : "Calcular siguiente nodo";
+}
+
+function renderPasoPendiente(container, paso) {
+    container.appendChild(crearMensaje(paso.texto));
+}
+
+function crearMensaje(texto) {
+    const mensaje = document.createElement("div");
+    mensaje.classList.add("alert", "alert-light", "border", "mb-0");
+    mensaje.textContent = texto;
+    return mensaje;
+}
+
+function crearTablaOrdenada(cabecera, filas, cambios, mostrarVacia = false) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("table-responsive", "mb-3");
+
+    const table = document.createElement("table");
+    table.classList.add("table", "table-bordered", "align-middle", "text-center");
+
+    table.appendChild(crearCabeceraTabla(cabecera));
+
+    const tbody = document.createElement("tbody");
+    if (mostrarVacia && filas.length === 0) {
         const tr = document.createElement("tr");
-        const td = crearCelda("No se han encontrado cambios de clase.");
-        td.colSpan = 3;
+        const td = crearCelda("Sin datos calculados.");
+        td.colSpan = cabecera.length;
         tr.appendChild(td);
         tbody.appendChild(tr);
     } else {
-        cambios.forEach(cambio => {
+        filas.forEach((fila, indice) => {
             const tr = document.createElement("tr");
-
-            const tdUmbral = crearCelda(`${cambio.valorAnterior} - ${cambio.valorSiguiente}`);
-            const tdUmbralCalculado = crearCelda(cambio.umbral.toFixed(2));
-            
-
-            const entropiaUmbral = calcularEntropiaParaUmbral(
-                filasOrdenadas,
-                cambio.umbral
+            const cambioActual = cambios.find(cambio =>
+                cambio.indiceAnterior === indice ||
+                cambio.indiceSiguiente === indice
             );
 
-            const tdEntropia = crearCelda(entropiaUmbral.toFixed(2));
-
-            if(currentStep === 1){
-                tdUmbralCalculado.style.backgroundColor = cambio.color;
-                tdEntropia.style.backgroundColor = cambio.color;
+            const tdValor = crearCelda(fila[0]);
+            if (cambioActual) {
+                tdValor.classList.add("umbral-highlight", "fw-semibold");
             }
-            
-            tdUmbral.classList.add("fw-bold");
-            tdUmbralCalculado.classList.add("fw-bold");
-            tdEntropia.classList.add("fw-bold");
-            
 
-            tr.appendChild(tdUmbral);
-            tr.appendChild(tdUmbralCalculado);
-            tr.appendChild(tdEntropia);
-
-            if(currentStep === 2){
-                const gananciaInformacion = calcularGananciaInformacionParaUmbral(
-                    filasOrdenadas,
-                    cambio.umbral
-                );
-                const tdGananciaInformacion = crearCelda(gananciaInformacion.toFixed(2))
-                tdGananciaInformacion.classList.add("fw-bold")
-                tdGananciaInformacion.style.backgroundColor = cambio.color;
-                tr.appendChild(tdGananciaInformacion);
-            }
+            tr.appendChild(tdValor);
+            tr.appendChild(crearCelda(fila[1]));
             tbody.appendChild(tr);
         });
     }
 
     table.appendChild(tbody);
     wrapper.appendChild(table);
-
     return wrapper;
 }
 
-/**
- * Paso 3: Ganancia de la información.
- */
-function renderPasoGananciaDeInformacion(container, paso) {
-    const datos = datosTablaOriginal;
+function crearCabeceraTabla(cabecera) {
+    const thead = document.createElement("thead");
+    const tr = document.createElement("tr");
 
-    const resultado = obtenerDatosOrdenadosPorAtributo(
-        datos,
-        paso.atributo,
-        paso.claseObjetivo
-    );
+    cabecera.forEach(nombreColumna => {
+        tr.appendChild(crearCeldaCabecera(nombreColumna));
+    });
 
-    const cambios = obtenerCambiosDeClase(resultado.filas);
+    thead.appendChild(tr);
+    return thead;
+}
 
+function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVacia = false) {
     const wrapper = document.createElement("div");
     wrapper.classList.add("table-responsive");
 
     const table = document.createElement("table");
-    table.classList.add(
-        "table",
-        "table-striped",
-        "table-hover",
-        "align-middle",
-        "text-center"
-    );
+    table.classList.add("table", "table-bordered", "align-middle", "text-center");
 
-    const thead = crearCabeceraTablaOrdenada(resultado.cabecera);
-    const tbody = crearCuerpoTablaOrdenada(resultado.filas, cambios);
+    table.appendChild(crearCabeceraTabla(nombresColumnas));
 
-    table.appendChild(thead);
-    table.appendChild(tbody);
-
-    wrapper.appendChild(table);
-    container.appendChild(wrapper);
-
-    const stepExtraContainer = document.getElementById("stepExtraContainer");
-    if (stepExtraContainer) {
-        limpiarElemento(stepExtraContainer);
-        stepExtraContainer.appendChild(crearTablaUmbrales(cambios, resultado.filas, paso.NombreColumnasAñadirTabla));
-    }
-}
-
-function crearInfoCardGananciaInformacion() {
-    const card = document.createElement("div");
-    card.classList.add("card", "bg-light", "mx-auto");
-
-    // GENERAL INFO HEADER
-    const generalHeader = document.createElement("div");
-    generalHeader.classList.add("card-header", "fs-6");
-    generalHeader.setAttribute("id", "generalInfoGain");
-
-    const generalLink = document.createElement("a");
-    generalLink.classList.add(
-        "collapsed",
-        "d-block",
-        "link-body-emphasis",
-        "link-offset-2",
-        "link-offset-2-hover",
-        "link-underline",
-        "link-underline-opacity-0",
-        "link-underline-opacity-50-hover"
-    );
-    generalLink.setAttribute("data-bs-toggle", "collapse");
-    generalLink.setAttribute("href", "#generalInfoGainBody");
-    generalLink.setAttribute("aria-expanded", "false");
-    generalLink.setAttribute("aria-controls", "generalInfoGainBody");
-    generalLink.textContent = "Información General de la Ganancia de la Información";
-
-    generalHeader.appendChild(generalLink);
-    card.appendChild(generalHeader);
-
-    const generalCollapse = document.createElement("div");
-    generalCollapse.classList.add("collapse");
-    generalCollapse.setAttribute("id", "generalInfoGainBody");
-    generalCollapse.setAttribute("aria-labelledby", "generalInfoGain");
-
-    const generalBody = document.createElement("div");
-    generalBody.classList.add("card-body");
-
-    const generalText = document.createElement("p");
-    generalText.classList.add("card-text", "fw-light");
-    generalText.textContent = "La ganancia de información mide la reducción de la entropía después de dividir el conjunto de datos. C4.5 selecciona inicialmente el atributo con la mayor ganancia de información.";
-
-    generalBody.appendChild(generalText);
-    generalCollapse.appendChild(generalBody);
-    card.appendChild(generalCollapse);
-
-    // CALCULATION HEADER
-    const calcHeader = document.createElement("div");
-    calcHeader.classList.add("card-header", "fs-6");
-    calcHeader.setAttribute("id", "calculationGain");
-
-    const calcLink = document.createElement("a");
-    calcLink.classList.add(
-        "collapsed",
-        "d-block",
-        "link-body-emphasis",
-        "link-offset-2",
-        "link-offset-2-hover",
-        "link-underline",
-        "link-underline-opacity-0",
-        "link-underline-opacity-50-hover"
-    );
-    calcLink.setAttribute("data-bs-toggle", "collapse");
-    calcLink.setAttribute("href", "#calcInfoGainBody");
-    calcLink.setAttribute("aria-expanded", "false");
-    calcLink.setAttribute("aria-controls", "calcInfoGainBody");
-    calcLink.textContent = "Cálculo";
-
-    calcHeader.appendChild(calcLink);
-    card.appendChild(calcHeader);
-
-    const calcCollapse = document.createElement("div");
-    calcCollapse.classList.add("collapse");
-    calcCollapse.setAttribute("id", "calcInfoGainBody");
-    calcCollapse.setAttribute("aria-labelledby", "calculationGain");
-
-    const calcBody = document.createElement("div");
-    calcBody.classList.add("card-body");
-
-    const calcTextIntro = document.createElement("p");
-    calcTextIntro.classList.add("card-text", "fw-light");
-    calcTextIntro.textContent =
-        "La ganancia de información mide cuánto disminuye la incertidumbre del conjunto S al dividirlo basándose en un atributo A.";
-
-    const formula = document.createElement("ul");
-    formula.classList.add("card-text", "fw-light", "text-center", "fw-bold");
-    formula.textContent =
-        "\\(Gain(S, A) = E(S) - \\sum_{v \\in Valores(A)} \\frac{\\vert{}S_v\\vert{}}{\\vert{}S\\vert{}} E(S_v)\\)";
-
-    const whereText = document.createElement("p");
-    whereText.classList.add("card-text", "fw-light");
-    whereText.textContent = "Donde:";
-
-    const ul = document.createElement("ul");
-    ul.classList.add("card-text", "fw-light");
-
-    const variables = [
-        "\\(S\\) es el conjunto de datos que estamos analizando.",
-        "\\(A\\) es el atributo que usamos para dividir el conjunto.",
-        "\\(Valores(A)\\) representa los valores posibles del atributo A.",
-        "\\(v\\) es cada valor concreto del atributo A.",
-        "\\(S_v\\) es el subconjunto de S formado por los ejemplos donde el atributo A toma el valor v.",
-        "\\(\\vert{}S_v\\vert{} / \\vert{}S\\vert{}\\) es el peso o proporción de ese subconjunto.",
-        "\\(E(S)\\) es la entropía del conjunto original.",
-        "\\(E(S_v)\\) es la entropía del subconjunto generado por el valor v."
-    ];
-
-    variables.forEach(texto => {
-        const li = document.createElement("li");
-        li.textContent = texto;
-        ul.appendChild(li);
-    });
-
-    calcBody.appendChild(calcTextIntro);
-    calcBody.appendChild(formula);
-    calcBody.appendChild(whereText);
-    calcBody.appendChild(ul);
-    calcCollapse.appendChild(calcBody);
-    card.appendChild(calcCollapse);
-
-    setTimeout(() => {
-        if (window.MathJax) {
-            MathJax.typesetPromise();
-        }
-    }, 0);
-
-    return card;
-}
-
-/**
- * Crea la cabecera de la tabla ordenada.
- */
-function crearCabeceraTablaOrdenada(cabecera) {
-    const thead = document.createElement("thead");
-    thead.classList.add("table-dark");
-
-    const tr = document.createElement("tr");
-
-    cabecera.forEach(nombreColumna => {
-        const th = crearCeldaCabecera(nombreColumna);
-        tr.appendChild(th);
-    });
-
-    thead.appendChild(tr);
-
-    return thead;
-}
-
-/**
- * Crea el cuerpo de la tabla ordenada.
- */
-function crearCuerpoTablaOrdenada(filas, cambios) {
     const tbody = document.createElement("tbody");
 
-    filas.forEach((fila, indice) => {
+    if (cambios.length === 0) {
         const tr = document.createElement("tr");
-
-        const cambioActual = cambios.find(cambio =>
-            cambio.indiceAnterior === indice ||
-            cambio.indiceSiguiente === indice
-        );
-
-        const tdValor = crearCelda(fila[0]);
-
-        if (cambioActual) {
-            tdValor.style.backgroundColor = cambioActual.color;
-            tdValor.classList.add("fw-bold");
-        }
-        const tdClase = crearCelda(fila[1]);
-
-        tr.appendChild(tdValor);
-        tr.appendChild(tdClase);
-
+        const td = crearCelda(mostrarVacia ? "Sin datos calculados." : "No se han encontrado cambios de clase.");
+        td.colSpan = nombresColumnas.length;
+        tr.appendChild(td);
         tbody.appendChild(tr);
-    });
+    } else {
+        cambios.forEach(cambio => {
+            const tr = document.createElement("tr");
 
-    return tbody;
-}
+            const tdUmbral = crearCelda(`${cambio.valorAnterior} - ${cambio.valorSiguiente}`, ["fw-semibold", "umbral-highlight"]);
+            const tdUmbralCalculado = crearCelda(cambio.umbral.toFixed(2), ["fw-semibold"]);
+            const entropiaUmbral = calcularEntropiaParaUmbral(filasOrdenadas, cambio.umbral);
+            const tdEntropia = crearCelda(entropiaUmbral.toFixed(2), ["fw-semibold"]);
 
-/**
- * Lee la tabla HTML del paso 1 y la transforma en formato parecido a CSV.
- */
-function obtenerDatosTabla(idTabla) {
-    const tabla = document.getElementById(idTabla);
+            tr.appendChild(tdUmbral);
+            tr.appendChild(tdUmbralCalculado);
+            tr.appendChild(tdEntropia);
 
-    if (!tabla) {
-        throw new Error(`No existe ninguna t
-            abla con el id "${idTabla}"`);
-    }
+            if (nombresColumnas.includes("Ganancia información")) {
+                const gananciaInformacion = calcularGananciaInformacionParaUmbral(filasOrdenadas, cambio.umbral);
+                tr.appendChild(crearCelda(gananciaInformacion.toFixed(2), ["fw-semibold"]));
+            }
 
-    const datos = [];
+            if (nombresColumnas.includes("Split Info")) {
+                const splitInfo = calcularSplitInfoParaUmbral(filasOrdenadas, cambio.umbral);
+                tr.appendChild(crearCelda(splitInfo.toFixed(2), ["fw-semibold"]));
+            }
 
-    const cabecera = [];
-    const celdasCabecera = tabla.querySelectorAll("thead th");
+            if (nombresColumnas.includes("Gain Ratio")) {
+                const gainRatio = calcularGainRatioParaUmbral(filasOrdenadas, cambio.umbral);
+                tr.appendChild(crearCelda(gainRatio.toFixed(2), ["fw-semibold"]));
+            }
 
-    celdasCabecera.forEach((celda, indice) => {
-        if (indice === 0) return;
-
-        cabecera.push(celda.textContent.trim());
-    });
-
-    datos.push(cabecera);
-
-    const filas = tabla.querySelectorAll("tbody tr");
-
-    filas.forEach(fila => {
-        const datosFila = [];
-        const celdas = fila.querySelectorAll("td");
-
-        celdas.forEach((celda, indiceCelda) => {
-            if (indiceCelda === 0) return;
-
-            datosFila.push(obtenerValorCelda(celda));
+            tbody.appendChild(tr);
         });
-
-        const filaTieneDatos = datosFila.some(valor => valor !== "");
-
-        if (filaTieneDatos) {
-            datos.push(datosFila);
-        }
-    });
-
-    return datos;
-}
-
-/**
- * Obtiene el valor de una celda.
- */
-function obtenerValorCelda(celda) {
-    const input = celda.querySelector("input");
-
-    if (input) {
-        return input.value.trim();
     }
 
-    return celda.textContent.trim();
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    return wrapper;
 }
 
-/**
- * Ordena los datos por un atributo y devuelve solo:
- * atributo + clase objetivo.
- */
 function obtenerDatosOrdenadosPorAtributo(datos, atributo, claseObjetivo) {
     const cabecera = datos[0];
-
     const indiceAtributo = cabecera.indexOf(atributo);
     const indiceClase = cabecera.indexOf(claseObjetivo);
 
@@ -740,11 +1024,7 @@ function obtenerDatosOrdenadosPorAtributo(datos, atributo, claseObjetivo) {
         throw new Error(`No existe la clase objetivo "${claseObjetivo}"`);
     }
 
-    const filas = datos.slice(1);
-
-    const filasOrdenadas = [...filas].sort((a, b) => {
-        return Number(a[indiceAtributo]) - Number(b[indiceAtributo]);
-    });
+    const filasOrdenadas = [...datos.slice(1)].sort((a, b) => Number(a[indiceAtributo]) - Number(b[indiceAtributo]));
 
     return {
         cabecera: [atributo, claseObjetivo],
@@ -755,10 +1035,7 @@ function obtenerDatosOrdenadosPorAtributo(datos, atributo, claseObjetivo) {
     };
 }
 
-/**
- * Detecta en qué posiciones cambia la clase.
- */
-function obtenerCambiosDeClase(filas, entropiaConjuntoOriginal) {
+function obtenerCambiosDeClase(filas) {
     const cambios = [];
 
     for (let i = 0; i < filas.length - 1; i++) {
@@ -769,18 +1046,12 @@ function obtenerCambiosDeClase(filas, entropiaConjuntoOriginal) {
             const valorAnterior = Number(filas[i][0]);
             const valorSiguiente = Number(filas[i + 1][0]);
 
-            if(primerValorUmbral == null && segundoValorUmbral == null){
-                primerValorUmbral = valorAnterior;
-                segundoValorUmbral = valorSiguiente;
-            }
-
             cambios.push({
                 indiceAnterior: i,
                 indiceSiguiente: i + 1,
                 valorAnterior,
                 valorSiguiente,
-                umbral: calcularUmbral(valorAnterior, valorSiguiente),
-                color: generarColorAleatorioSuave()
+                umbral: calcularUmbral(valorAnterior, valorSiguiente)
             });
         }
     }
@@ -788,55 +1059,242 @@ function obtenerCambiosDeClase(filas, entropiaConjuntoOriginal) {
     return cambios;
 }
 
-/**
- * Genera colores aleatorios para mostrar los diferentes umbrales
- * @returns devuelve un color aleatorio
- */
-function generarColorAleatorioSuave() {
-    const r = Math.floor(180 + Math.random() * 75);
-    const g = Math.floor(180 + Math.random() * 75);
-    const b = Math.floor(180 + Math.random() * 75);
-
-    return `rgb(${r}, ${g}, ${b})`;
+function calcularSplitInfoParaUmbral(filasOrdenadas, umbral) {
+    const totalIzquierda = filasOrdenadas.filter(fila => Number(fila[0]) <= umbral).length;
+    const totalDerecha = filasOrdenadas.length - totalIzquierda;
+    return calcularSplitInfoDeTamanos(totalIzquierda, totalDerecha);
 }
 
-/**
- * Guarda los datos del paso 1 antes de pasar al paso 2.
- */
+function calcularSplitInfoDeTamanos(...tamanosGrupo) {
+    const total = tamanosGrupo.reduce((acumulado, tamanoGrupo) => acumulado + tamanoGrupo, 0);
+    if (total === 0) return 0;
+
+    return tamanosGrupo.reduce((acumulado, tamanoGrupo) => {
+        if (tamanoGrupo === 0) return acumulado;
+
+        const proporcion = tamanoGrupo / total;
+        return acumulado - proporcion * Math.log2(proporcion);
+    }, 0);
+}
+
+function calcularGainRatioParaUmbral(filasOrdenadas, umbral) {
+    const splitInfo = calcularSplitInfoParaUmbral(filasOrdenadas, umbral);
+    if (splitInfo === 0) return 0;
+
+    return calcularGananciaInformacionParaUmbral(filasOrdenadas, umbral) / splitInfo;
+}
+
+function crearInfoCardUmbral() {
+    const card = crearCardDesplegable();
+
+    card.appendChild(crearSeccionCard(
+        "generalInfoUmbral",
+        "generalInfoUmbralBody",
+        "Para qué sirve el cálculo del umbral",
+        [
+            "El umbral permite dividir un atributo numérico en dos grupos. En C4.5 se buscan puntos donde cambia la clase, porque esos puntos pueden separar mejor los datos.",
+            "Primero se ordenan los valores numéricos. Después se comparan las clases de filas consecutivas. Cuando la clase cambia, se calcula un candidato a umbral entre esos dos valores."
+        ]
+    ));
+
+    card.appendChild(crearSeccionCard(
+        "calculationUmbral",
+        "calculationUmbralBody",
+        "Cálculo",
+        [
+            "El umbral entre dos valores consecutivos se calcula con la media de ambos:",
+            "\\(Umbral = \\frac{n_1 + n_2}{2}\\)",
+            "Donde \\(n_1\\) es el último valor antes del cambio de clase y \\(n_2\\) es el primer valor donde aparece la clase nueva."
+        ]
+    ));
+
+    return card;
+}
+
+function crearInfoCardGananciaInformacion() {
+    const card = crearCardDesplegable();
+
+    card.appendChild(crearSeccionCard(
+        "generalInfoGain",
+        "generalInfoGainBody",
+        "Información general de la ganancia de información",
+        [
+            "La ganancia de información mide la reducción de la entropía después de dividir el conjunto de datos.",
+            "C4.5 evalúa divisiones candidatas y favorece las que reducen más la incertidumbre."
+        ]
+    ));
+
+    card.appendChild(crearSeccionCard(
+        "calculationGain",
+        "calcInfoGainBody",
+        "Cálculo",
+        [
+            "La ganancia de información mide cuánto disminuye la incertidumbre del conjunto \\(S\\) al dividirlo con un atributo \\(A\\).",
+            "\\(Gain(S, A) = E(S) - \\sum_{v \\in Valores(A)} \\frac{\\vert{}S_v\\vert{}}{\\vert{}S\\vert{}} E(S_v)\\)",
+            "Donde \\(E(S)\\) es la entropía del conjunto original y \\(E(S_v)\\) es la entropía de cada subconjunto generado."
+        ]
+    ));
+
+    return card;
+}
+
+function crearInfoCardSplitInfo() {
+    const card = crearCardDesplegable();
+
+    card.appendChild(crearSeccionCard(
+        "generalInfoSplit",
+        "generalInfoSplitBody",
+        "Información general de Split Info",
+        [
+            "Split Info mide cómo de repartida queda la división generada por un umbral.",
+            "Una división muy desequilibrada tiene un Split Info bajo; una división más repartida tiene un valor mayor."
+        ]
+    ));
+
+    card.appendChild(crearSeccionCard(
+        "calculationSplit",
+        "calcInfoSplitBody",
+        "Cálculo",
+        [
+            "Para cada grupo generado por el umbral se calcula su proporción respecto al total:",
+            "\\(SplitInfo = - \\sum p_i \\log_2(p_i)\\)",
+            "Donde \\(p_i\\) es la proporción de ejemplos que caen en cada lado del umbral."
+        ]
+    ));
+
+    return card;
+}
+
+function crearInfoCardGainRatio() {
+    const card = crearCardDesplegable();
+
+    card.appendChild(crearSeccionCard(
+        "generalInfoGainRatio",
+        "generalInfoGainRatioBody",
+        "Información general de Gain Ratio",
+        [
+            "Gain Ratio ajusta la ganancia de información usando Split Info.",
+            "C4.5 lo utiliza para comparar divisiones evitando favorecer atributos que separan demasiado los datos."
+        ]
+    ));
+
+    card.appendChild(crearSeccionCard(
+        "calculationGainRatio",
+        "calcInfoGainRatioBody",
+        "Cálculo",
+        [
+            "Gain Ratio se obtiene dividiendo la ganancia de información entre el Split Info:",
+            "\\(GainRatio = \\frac{Gain}{SplitInfo}\\)",
+            "Si el Split Info es cero, el resultado se toma como cero para evitar una división no válida."
+        ]
+    ));
+
+    return card;
+}
+
+function crearInfoCardNodoElegido() {
+    const card = crearCardDesplegable();
+
+    card.appendChild(crearSeccionCard(
+        "generalInfoNode",
+        "generalInfoNodeBody",
+        "Cómo se elige el nodo",
+        [
+            "El nodo elegido es el umbral con mejor Gain Ratio entre los candidatos calculados.",
+            "La condición del nodo separa los datos en dos ramas: una para los valores menores o iguales al umbral y otra para los valores mayores."
+        ]
+    ));
+
+    card.appendChild(crearSeccionCard(
+        "calculationNode",
+        "calcInfoNodeBody",
+        "Resultado de las ramas",
+        [
+            "Si todos los datos de una rama tienen la misma clase, esa clase aparece como resultado final.",
+            "Si en una rama hay mezcla de clases, se indica que hay que calcular el siguiente nodo."
+        ]
+    ));
+
+    return card;
+}
+
+function crearCardDesplegable() {
+    const card = document.createElement("div");
+    card.classList.add("card", "bg-light", "mx-auto");
+    return card;
+}
+
+function crearSeccionCard(idCabecera, idCuerpo, titulo, parrafos) {
+    const fragmento = document.createDocumentFragment();
+
+    const header = document.createElement("div");
+    header.classList.add("card-header", "fs-6");
+    header.id = idCabecera;
+
+    const link = document.createElement("a");
+    link.classList.add(
+        "collapsed",
+        "d-block",
+        "link-body-emphasis",
+        "link-offset-2",
+        "link-offset-2-hover",
+        "link-underline",
+        "link-underline-opacity-0",
+        "link-underline-opacity-50-hover"
+    );
+    link.setAttribute("data-bs-toggle", "collapse");
+    link.setAttribute("href", `#${idCuerpo}`);
+    link.setAttribute("aria-expanded", "false");
+    link.setAttribute("aria-controls", idCuerpo);
+    link.textContent = titulo;
+    header.appendChild(link);
+
+    const collapse = document.createElement("div");
+    collapse.classList.add("collapse");
+    collapse.id = idCuerpo;
+    collapse.setAttribute("aria-labelledby", idCabecera);
+
+    const body = document.createElement("div");
+    body.classList.add("card-body");
+
+    parrafos.forEach(texto => {
+        const p = document.createElement("p");
+        p.classList.add("card-text", "fw-light");
+        p.textContent = texto;
+        body.appendChild(p);
+    });
+
+    collapse.appendChild(body);
+    fragmento.appendChild(header);
+    fragmento.appendChild(collapse);
+
+    return fragmento;
+}
+
+function renderizarMathJax() {
+    setTimeout(() => {
+        if (window.MathJax) {
+            MathJax.typesetPromise();
+        }
+    }, 0);
+}
+
 function guardarDatosIniciales() {
-    datosTablaOriginal = obtenerDatosTabla("table-dataset");
+    datosTablaOriginal = obtenerDatosTablaUmbral();
 }
 
-/**
- * Ir al primer paso.
- */
 function initialStep() {
     currentStep = 0;
     mostrarPaso();
 }
 
-/**
- * Ir un paso hacia delante.
- */
 function stepForward() {
     if (currentStep >= pasos.length - 1) return;
-
-    if (currentStep === 0) {
-        try {
-            guardarDatosIniciales();
-        } catch (error) {
-            alert(error.message);
-            return;
-        }
-    }
 
     currentStep++;
     mostrarPaso();
 }
 
-/**
- * Ir un paso hacia atrás.
- */
 function stepBack() {
     if (currentStep <= 0) return;
 
@@ -844,26 +1302,40 @@ function stepBack() {
     mostrarPaso();
 }
 
-/**
- * Ir al último paso.
- */
 function lastStep() {
-    if (currentStep === 0) {
-        try {
-            guardarDatosIniciales();
-        } catch (error) {
-            alert(error.message);
-            return;
-        }
-    }
-
     currentStep = pasos.length - 1;
     mostrarPaso();
 }
 
-/**
- * Volver a pintar el paso actual.
- */
+function goToSpecificStep(stepIndex) {
+    if (stepIndex < 0 || stepIndex >= pasos.length) return;
+
+    currentStep = stepIndex;
+    mostrarPaso();
+}
+
+function actualizarBotonActivo(stepIndex) {
+    const botones = [
+        "btnPasoUmbral",
+        "btnPasoGanancia",
+        "btnPasoSplitInfo",
+        "btnPasoGainRatio",
+        "btnPasoNodo"
+    ];
+
+    botones.forEach(idBoton => {
+        const boton = document.getElementById(idBoton);
+        if (boton) {
+            boton.classList.remove("active-step");
+        }
+    });
+
+    const botonActivo = document.getElementById(botones[stepIndex]);
+    if (botonActivo) {
+        botonActivo.classList.add("active-step");
+    }
+}
+
 function goToStep() {
     mostrarPaso();
 }
@@ -873,7 +1345,8 @@ export {
     stepForward,
     stepBack,
     lastStep,
-    goToStep
+    goToStep,
+    goToSpecificStep
 };
 
 export default initialStep;

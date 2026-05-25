@@ -93,3 +93,350 @@ footer {
   overflow: auto;
   display: inline-block;
 }
+
+.step-btn {
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 400;
+    color: rgba(0, 0, 0, 0.45);
+    transition: all 0.25s ease;
+    padding: 0.2rem 0.4rem;
+}
+
+.step-btn:hover {
+    color: rgba(0, 0, 0, 0.75);
+    transform: translateY(-1px);
+}
+
+.active-step {
+    color: rgba(0, 0, 0, 1);
+    font-weight: 700;
+    transform: scale(1.03);
+}
+
+.step-btn:disabled,
+.step-btn[aria-disabled="true"] {
+    cursor: default;
+}
+
+.table-responsive {
+    width: 100%;
+}
+
+.table input,
+.table select {
+    min-width: 130px;
+}
+
+.threshold-table-card {
+    overflow: hidden;
+    border: 1px solid #d8dee8;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.threshold-table-header {
+    position: relative;
+    padding: 1rem 1.15rem 0.35rem;
+    color: #212529;
+    background: #f8f9fa;
+}
+
+
+
+.threshold-table-title {
+    margin: 0;
+    color: #1f2933;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.threshold-table-intro {
+    padding: 0 1.15rem 1rem 2.05rem;
+    background: #f8f9fa;
+}
+
+.threshold-table-description {
+    max-width: 34rem;
+    margin: 0;
+    color: #5c6875;
+    font-size: 0.95rem;
+    font-weight: 300;
+    line-height: 1.45;
+}
+
+.threshold-table-scroll {
+    margin: 0;
+}
+
+.threshold-generator {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0 1rem 1rem;
+    border-bottom: 1px solid #edf1f5;
+    background: #f8f9fa;
+}
+
+.threshold-generator-field {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    color: #445262;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.threshold-generator-field .form-control {
+    min-width: 0;
+    border-color: #d5dde7;
+    border-radius: 6px;
+}
+
+.threshold-generator-field .form-control:focus {
+    border-color: #5d8db8;
+    box-shadow: 0 0 0 0.18rem rgba(93, 141, 184, 0.16);
+}
+
+.threshold-generate-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    grid-column: 1 / -1;
+    justify-self: start;
+    white-space: nowrap;
+}
+
+.threshold-generator-error {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #b02a37;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.threshold-data-table {
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.threshold-data-table thead th {
+    padding: 0.85rem;
+    border-bottom: 1px solid #d8dee8;
+    background: #f8fafc;
+}
+
+.threshold-data-table tbody td {
+    padding: 0.85rem;
+    border-color: #e8edf3;
+}
+
+.threshold-data-table tbody tr:nth-child(even) td {
+    background-color: #fbfcfe;
+}
+
+.threshold-data-table tbody tr:hover td {
+    background-color: #f1f7fb;
+}
+
+.threshold-data-table .form-control {
+    border-color: #d5dde7;
+    border-radius: 6px;
+    background-color: #ffffff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.threshold-data-table .form-control:focus {
+    border-color: #5d8db8;
+    box-shadow: 0 0 0 0.18rem rgba(93, 141, 184, 0.16);
+}
+
+.threshold-table-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.1rem;
+    border-top: 1px solid #edf1f5;
+    background: #f8f9fa;
+}
+
+.threshold-calc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.threshold-calc-btn {
+    padding-inline: 1rem;
+    border-radius: 6px;
+}
+
+.chosen-node-preview {
+    display: grid;
+    gap: 0;
+    justify-items: center;
+    overflow: hidden;
+}
+
+.chosen-node-box,
+.chosen-node-leaf {
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid #cfd8e3;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2933;
+    font-weight: 700;
+    text-align: center;
+}
+
+.chosen-node-branches {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.4rem;
+    width: 100%;
+    padding-top: 2.6rem;
+}
+
+.chosen-node-branches::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 1.05rem;
+    border-left: 2px solid #7c8b9b;
+}
+
+.chosen-node-branches::after {
+    content: "";
+    position: absolute;
+    top: 1.05rem;
+    left: 25%;
+    right: 25%;
+    border-top: 2px solid #7c8b9b;
+}
+
+.chosen-node-branch {
+    display: grid;
+    gap: 0.55rem;
+    justify-items: center;
+    min-width: 0;
+}
+
+.chosen-node-arrow {
+    position: relative;
+    width: 100%;
+    min-height: 1.25rem;
+    color: #445262;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.chosen-node-arrow::before {
+    content: "";
+    position: absolute;
+    top: -1.55rem;
+    left: 50%;
+    height: 1.35rem;
+    border-left: 2px solid #7c8b9b;
+}
+
+.chosen-node-arrow::after {
+    content: none;
+}
+
+.chosen-node-arrow span {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    padding: 0 0.35rem;
+    background: #f8f9fa;
+}
+
+.chosen-node-leaf {
+    min-width: 8.5rem;
+    font-weight: 600;
+}
+
+@media (min-width: 1200px) {
+    .step-layout-row.threshold-results-active {
+        display: grid;
+        grid-template-columns: 450px 530px minmax(620px, 1fr);
+        gap: 1rem;
+        align-items: start;
+        width: min(1660px, calc(100vw - 2rem));
+        margin-inline: auto;
+    }
+
+    .threshold-results-active .step-info-column {
+        grid-column: 1;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .threshold-results-active .step-data-column {
+        grid-column: 2;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .threshold-results-layout {
+        grid-column: 3;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .threshold-results-layout #stepExtraContainer {
+        display: grid;
+        gap: 1rem;
+        margin-top: 0 !important;
+    }
+}
+
+.umbral-highlight {
+    background-color: #fff3cd !important;
+}
+
+#formulaUmbral .form-control {
+    max-width: 110px;
+}
+
+@media (max-width: 768px) {
+    header .d-flex {
+        flex-wrap: wrap;
+    }
+
+    .step-btn {
+        font-size: 0.95rem;
+    }
+
+    .threshold-table-header,
+    .threshold-generator,
+    .threshold-table-actions {
+        padding-inline: 0.85rem;
+    }
+
+    .threshold-table-header::before {
+        left: 0.85rem;
+    }
+
+    .threshold-table-title {
+        padding-left: 0.85rem;
+    }
+
+    .threshold-table-intro {
+        padding-inline: 1.7rem 0.85rem;
+    }
+
+    .threshold-generator {
+        grid-template-columns: 1fr;
+    }
+}
