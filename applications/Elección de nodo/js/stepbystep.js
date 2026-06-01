@@ -245,7 +245,7 @@ function crearTablaEntradaUmbral() {
     tbody.id = "cuerpo-tabla-umbral";
 
     table.appendChild(thead);
-    table.appendChild(tbody);
+    table.appendChild(tbody); 
     bloque.appendChild(encabezado);
     bloque.appendChild(intro);
     bloque.appendChild(crearGeneradorTablaUmbral());
