@@ -251,7 +251,7 @@ function crearTablaEntradaUmbral() {
     bloque.appendChild(crearGeneradorTablaUmbral());
     bloque.appendChild(crearAccionesTablaUmbral(textoAccion));
     wrapper.appendChild(table);
-    bloque.appendChild(wrapper);
+    bloque.appendChild(wrapper); 
 
     return bloque;
 }
