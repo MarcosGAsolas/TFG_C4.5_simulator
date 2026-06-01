@@ -176,7 +176,6 @@ footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
     padding: 0 1rem 1rem;
-    border-bottom: 1px solid #edf1f5;
     background: #f8f9fa;
 }
 
@@ -200,14 +199,23 @@ footer {
     box-shadow: 0 0 0 0.18rem rgba(93, 141, 184, 0.16);
 }
 
-.threshold-generate-btn {
+.threshold-generate-btn,
+.threshold-calc-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    grid-column: 1 / -1;
     justify-self: start;
     white-space: nowrap;
+}
+
+.threshold-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0 1rem 1rem;
+    border-bottom: 1px solid #edf1f5;
+    background: #f8f9fa;
 }
 
 .threshold-generator-error {
@@ -253,22 +261,6 @@ footer {
 .threshold-data-table .form-control:focus {
     border-color: #5d8db8;
     box-shadow: 0 0 0 0.18rem rgba(93, 141, 184, 0.16);
-}
-
-.threshold-table-actions {
-    display: flex;
-    justify-content: flex-end;
-    padding: 1rem 1.1rem;
-    border-top: 1px solid #edf1f5;
-    background: #f8f9fa;
-}
-
-.threshold-calc-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    white-space: nowrap;
 }
 
 .threshold-calc-btn {
@@ -439,4 +431,5 @@ footer {
     .threshold-generator {
         grid-template-columns: 1fr;
     }
+
 }

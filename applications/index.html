@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang ="en">
+<html lang ="es">
 
 <head>
     <link rel="stylesheet" href="css/style.css" />
@@ -19,15 +19,16 @@
 <body>
  <header class="py-3 mb-4 border-bottom bg-body-secondary bg-opacity-75 ">
 
-        <div class="d-flex align-items-center gap-2 ">
+        <div class="d-flex align-items-center gap-2 px-2">
             <a href="https://www.ubu.es" class="d-flex align-items-center me-2 ">
-                <img src="/img/ubulogocolorfull.png" width="100" height="50">
+                <img src="/img/ubulogocolorfull.png" width="100" height="50" alt="Universidad de Burgos">
             </a>
             <a href="index.html" class="fw-bold fs-5 ms-2 me-2 nav-link link-dark">Simulador árbol de decisión (Algoritmo C4.5) </a> 
           <div class="d-flex flex-row align-items-center gap-2 ms-auto">
-            <a href="entropia/index.html" class="btn btn-outline-secondary btn-sm">Entropia</a>
-            <a href="Elección de nodo/index.html" class="btn btn-outline-secondary btn-sm">Elección de nodo</a>
-            <a class="btn btn-outline-secondary btn-sm">Árbol de decisión C4.5</a>
+            <span class="step-btn active-step">Menú</span>
+            <a href="entropia/index.html" class="step-btn text-decoration-none">Entropía</a>
+            <a href="Elección de nodo/index.html" class="step-btn text-decoration-none">Elección de nodo</a>
+            <span class="step-btn" aria-disabled="true" title="Sección no disponible">Árbol de decisión C4.5</span>
           </div>
         </div>
  </header>
@@ -36,19 +37,19 @@
   <div class="row mb-3">
             <div class="col-12 text-center">
                 <p class="display-1 mb-4">Simulador del algoritmo C4.5</p>
-                <p class="fs-5">Este simulador esta hecho para que se pueda comprender de manera clara y sin dudas la construcción del árbol de decisión del algoritmo C4.5.<br>
+                <p class="fs-5">Este simulador está hecho para que se pueda comprender de manera clara y sin dudas la construcción del árbol de decisión del algoritmo C4.5.<br>
                     Esta aplicación ofrece una explicación teórica de los conceptos clave para la construcción del árbol.
-                    Primero ofrece todo lo necesario para comprender la entropia, posteriormente ofrece todo lo necesario para entender la elección de los nodos en un dataset 
-                    y por ultimo ofrece una simulación paso a paso de un dataset de ejemplo para ver como se construye el árbol.</p>
+                    Primero ofrece todo lo necesario para comprender la entropía, posteriormente ofrece todo lo necesario para entender la elección de los nodos en un dataset
+                    y por último ofrece una simulación paso a paso de un dataset de ejemplo para ver cómo se construye el árbol.</p>
             </div>
     <div class="row">
                 <div class="col-md-4 col-auto mb-3">
                     <div class="card">
                         <div class="card-header text-center">
-                            <span class="fw-bold fs-5">Entropia</span>
+                            <span class="fw-bold fs-5">Entropía</span>
                         </div>
                         <div class="card-body text-center">
-                            <p class="card-text fw-light">En este apartado se explica todo lo referido a la entropia, tanto la normal como la condicional</p>
+                            <p class="card-text fw-light">En este apartado se explica todo lo referido a la entropía, tanto la normal como la condicional</p>
                             <a href="entropia/index.html" class="btn btn-outline-success">Ver</a>
                         </div>
                     </div>
@@ -59,7 +60,7 @@
                             <span class="fw-bold fs-5">Elección de nodo</span>
                         </div>
                         <div class="card-body text-center">
-                            <p class="card-text fw-light">En este apartado se va a explicar todo lo refererido a la elección del nodo en el algoritmo C4.5, en el se explicaran diferentes conceptos teóricos necesarios para la explicación</p>
+                            <p class="card-text fw-light">En este apartado se va a explicar todo lo referido a la elección del nodo en el algoritmo C4.5; en él se explicarán diferentes conceptos teóricos necesarios para la explicación.</p>
                             <a href="Elección de nodo/index.html" class="btn btn-outline-success">Ver</a>
                         </div>
                     </div>
@@ -98,7 +99,7 @@
                         <span>Carlos López Nozal</span>
                     </li>
                     <li class="mb-2" style="list-style-type: none;">
-                        <span>Gadea Lucas Perez</span>
+                        <span>Gadea Lucas Pérez</span>
                     </li>
                 </ul>
             </div>
@@ -111,7 +112,7 @@
                     .then(repo => {
                       let d = new Date(repo.updated_at);
                       document.querySelector(".date").textContent =
-                        `Ultima actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
+                        `Última actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
                     });
                 </script>
             </div>

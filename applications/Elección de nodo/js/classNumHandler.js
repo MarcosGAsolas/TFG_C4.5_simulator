@@ -32,7 +32,7 @@ function crearSelectAprobado() {
 
     var opcionSi = document.createElement('option');
     opcionSi.value = 'Si';
-    opcionSi.textContent = 'Si';
+    opcionSi.textContent = 'Sí';
     selectAprobado.appendChild(opcionSi);
 
     var opcionNo = document.createElement('option');

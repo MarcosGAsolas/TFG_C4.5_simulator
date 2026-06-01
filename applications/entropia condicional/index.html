@@ -18,29 +18,30 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de entropia condicional</title>
+    <title>Calculadora de entropía condicional</title>
 </head>
 
 <body>
     <!-- Header -->
  <header class="py-3 mb-4 border-bottom bg-body-secondary bg-opacity-75 ">
 
-        <div class="d-flex align-items-center gap-2 ">
+        <div class="d-flex align-items-center gap-2 px-2">
             <a href="https://www.ubu.es" class="d-flex align-items-center me-2 ">
-                <img src="/img/ubulogocolorfull.png" width="100" height="50">
+                <img src="/img/ubulogocolorfull.png" width="100" height="50" alt="Universidad de Burgos">
             </a>
             <a href="../index.html" class="fw-bold fs-5 ms-2 me-2 nav-link link-dark">Simulador árbol de decisión (Algoritmo C4.5) </a> 
           <div class="d-flex flex-row align-items-center gap-2 ms-auto">
-            <a class="btn btn-outline-secondary btn-sm">Entropia</a>
-            <button class="btn btn-outline-secondary btn-sm">Elección de nodo</button>
-            <button class="btn btn-outline-secondary btn-sm">Árbol de decisión C4.5</button>
+            <a href="../index.html" class="step-btn text-decoration-none">Menú</a>
+            <span class="step-btn active-step">Entropía</span>
+            <a href="../Elección de nodo/index.html" class="step-btn text-decoration-none">Elección de nodo</a>
+            <span class="step-btn" aria-disabled="true" title="Sección no disponible">Árbol de decisión C4.5</span>
           </div>
         </div>
     </header>
     <div class="container pb-2">
         <div class="section-switcher">
-            <a href="../entropia/index.html" class="section-switcher-link">Entropia</a>
-            <span class="section-switcher-current">Entropia condicional</span>
+            <a href="../entropia/index.html" class="section-switcher-link">Entropía</a>
+            <span class="section-switcher-current">Entropía condicional</span>
         </div>
         <!-- Info card -->
         <div class="row-auto p-2 pb-4">
@@ -51,30 +52,30 @@
                         <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
                             data-bs-toggle="collapse" href="#generalInfoCondEntropy" aria-expanded="false"
                             aria-controls="generalInfoCondEntropy">
-                            Informacion general
+                            Información general
                         </a>
                     </div>
                     <div class="collapse" id="generalInfoCondEntropy" aria-labelledby="generalInfo"
                         data-parent="#accordionInfo">
                         <div class="card-body ">
                             <p class="card-text fw-light">
-                                La entropia condicional es una medida de la impureza, incertidumbre o aleatoriedad que
+                                La entropía condicional es una medida de la impureza, incertidumbre o aleatoriedad que
                                 permanece en una variable aleatoria cuando se conoce otra variable aleatoria.
                             <p class="card-text fw-light">
-                                En el contexto de los problemas de clasificacion, la entropia condicional cuantifica la
+                                En el contexto de los problemas de clasificación, la entropía condicional cuantifica la
                                 incertidumbre de una variable objetivo \( Y \), que describe el conjunto de etiquetas de
-                                clase, dado una categoria o valor \( x \) del atributo \( X \).
+                                clase, dada una categoría o valor \( x \) del atributo \( X \).
                             <ul class="card-text fw-light">
                                 <li>
-                                    Nota: El termino "categoria" (de un atributo) suele referirse a valores categoricos
+                                    Nota: El término "categoría" (de un atributo) suele referirse a valores categóricos
                                     o nominales, mientras que "valor" (de un atributo) suele referirse a valores
-                                    numericos. Esta aplicacion usa en la practica valores categoricos, pero emplea
-                                    ambos terminos en la informacion teorica.
+                                    numéricos. Esta aplicación usa en la práctica valores categóricos, pero emplea
+                                    ambos términos en la información teórica.
                                 </li>
                             </ul>
                             </p>
                             <a href="https://en.wikipedia.org/wiki/Conditional_entropy"
-                                class="btn btn-outline-dark ">Saber mas</a>
+                                class="btn btn-outline-dark ">Saber más</a>
                             </p>
                         </div>
                     </div>
@@ -83,7 +84,7 @@
                         <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
                             data-bs-toggle="collapse" href="#calcInfoCondEntropy" aria-expanded="false"
                             aria-controls="calcInfoCondEntropy">
-                            Calculo
+                            Cálculo
                         </a>
                     </div>
                     <div class="collapse" id="calcInfoCondEntropy" aria-labelledby="calculation"
@@ -91,8 +92,8 @@
                         <div class="card-body ">
                             <p class="card-text fw-light">
                             <p class="card-text fw-light">
-                                Para un problema de clasificacion binaria, la entropia condicional \( E(Y|X) \) se
-                                calcula usando la siguiente formula:
+                                Para un problema de clasificación binaria, la entropía condicional \( E(Y|X) \) se
+                                calcula usando la siguiente fórmula:
                             </p>
                             <p class="card-text fw-light">
                                 \[ E(Y|X) = \sum_{x \in X} p(x) E(Y|X = x) \]
@@ -101,16 +102,16 @@
                                 Donde:
                             </p>
                             <ul class="card-text fw-light">
-                                <li>\( X \) es el conjunto de categorias o valores del primer atributo</li>
-                                <li>\( Y \) es el conjunto de categorias o valores del atributo clase</li>
-                                <li>\( p(x) \) es la proporcion entre el numero de instancias con la categoria o valor
+                                <li>\( X \) es el conjunto de categorías o valores del primer atributo</li>
+                                <li>\( Y \) es el conjunto de categorías o valores del atributo clase</li>
+                                <li>\( p(x) \) es la proporción entre el número de instancias con la categoría o valor
                                     \( x \)
-                                    y el tamano del dataset</li>
+                                    y el tamaño del dataset</li>
                             </ul>
                             <p class="card-text fw-light">
-                                Las entropias condicionales para cada categoria o valor \( x \) del atributo \(
-                                X \) (mostradas como \( E(Categoria) \) en la calculadora inferior) se calculan con la
-                                siguiente formula:
+                                Las entropías condicionales para cada categoría o valor \( x \) del atributo \(
+                                X \) (mostradas como \( E(Categoría) \) en la calculadora inferior) se calculan con la
+                                siguiente fórmula:
                             </p>
                             <p class="card-text fw-light">
                                 \[ E(Y|X = x) = - \sum_{y \in Y} p(y|x)\log_2(p(y|x)) \]
@@ -119,22 +120,22 @@
                                 Donde:
                             </p>
                             <ul class="card-text fw-light">
-                                <li>\( p(y|x) \) es la proporcion de instancias del dataset con la categoria o valor
-                                    \( x \) del atributo que tambien tienen la etiqueta de clase \( y \)</li>
+                                <li>\( p(y|x) \) es la proporción de instancias del dataset con la categoría o valor
+                                    \( x \) del atributo que también tienen la etiqueta de clase \( y \)</li>
                             </ul>
                             <p class="card-text fw-light">
-                                La suma se realiza sobre todas las categorias o valores posibles del atributo clase
+                                La suma se realiza sobre todas las categorías o valores posibles del atributo clase
                                 \( Y \).
                             </p>
                             <br>
                             <p class="card-text fw-light">
-                            <b>Por ejemplo</b>, considera el espacio muestral de la clase (\(Y\)): \(\text{Jugar al golf} = \{\text{si}, \text{no}\}\), y el espacio muestral del atributo (\(X\)): \(\text{Tiempo} = \{\text{Soleado}, \text{Lluvioso}\}\). La entropia condicional se expresa como:
+                            <b>Por ejemplo</b>, considera el espacio muestral de la clase (\(Y\)): \(\text{Jugar al golf} = \{\text{sí}, \text{no}\}\), y el espacio muestral del atributo (\(X\)): \(\text{Tiempo} = \{\text{Soleado}, \text{Lluvioso}\}\). La entropía condicional se expresa como:
                             </p>
                             <p class="card-text fw-light">
                                 \[ E(\text{Jugar al golf} | \text{Tiempo}) = \sum_{x \in \text{Tiempo}} p(x) E(\text{Jugar al golf} | \text{Tiempo} = x) \]
                             </p>
                             <p class="card-text fw-light">
-                                En concreto, para la categoria "Soleado", podemos calcular:
+                                En concreto, para la categoría "Soleado", podemos calcular:
                             </p>
                             <p class="card-text fw-light">
                                 \[ E(\text{Jugar al golf} | \text{Tiempo} = \text{Soleado}) = - \sum_{y \in \text{Jugar al golf}} p(y|\text{Soleado}) \log_2(p(y|\text{Soleado})) \] 
@@ -146,7 +147,7 @@
             </div>
         </div>
         <div class="row ">
-            <p class="fs-2 text-center">Calculadora de entropia condicional</p>
+            <p class="fs-2 text-center">Calculadora de entropía condicional</p>
             <!-- Alert sum 0 -->
             <div class="row-auto">
                 <div class="col-auto text-center">
@@ -163,7 +164,7 @@
                     <div class="alert alert-danger alert-dismissible d-none" id="alert-invalid-val">
                         <button type="button" class="btn-close"
                             onclick="$('#alert-invalid-val').addClass('d-none');"></button>
-                        Al menos un valor no es valido. Usa solo enteros positivos como valores de entrada.
+                        Al menos un valor no es válido. Usa solo enteros positivos como valores de entrada.
                     </div>
                 </div>
             </div>
@@ -173,7 +174,7 @@
                     <div class="alert alert-danger alert-dismissible d-none" id="alert-empty-input">
                         <button type="button" class="btn-close"
                             onclick="$('#alert-empty-input').addClass('d-none');"></button>
-                        Al menos un campo esta vacio. Anade valores enteros positivos en cada campo.
+                        Al menos un campo está vacío. Añade valores enteros positivos en cada campo.
                     </div>
                 </div>
             </div>
@@ -188,14 +189,14 @@
                                     <th></th>
                                     <th>Clase 1</th>
                                     <th>Clase 2</th>
-                                    <th>Proporcion</th>
-                                    <th>E(Categoria)</th>
+                                    <th>Proporción</th>
+                                    <th>E(Categoría)</th>
                                     <th class="text-center ">EC(Atributo)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td id="c1" class="text-center "><label class="form-control-plaintext ">Categoria
+                                    <td id="c1" class="text-center "><label class="form-control-plaintext ">Categoría
                                             1:</label></td>
                                     <td><input value=1 type=text class="form-control" /></td>
                                     <td><input value=5 type=text class="form-control" /></td>
@@ -205,7 +206,7 @@
                                             class="form-control-plaintext text-center fw-semibold  ">0.56</label></td>
                                 </tr>
                                 <tr>
-                                    <td id="c2" class="text-center "><label class="form-control-plaintext ">Categoria
+                                    <td id="c2" class="text-center "><label class="form-control-plaintext ">Categoría
                                             2:</label></td>
                                     <td><input value=1 type=text class="form-control" /></td>
                                     <td><input value=8 type=text class="form-control" /></td>
@@ -238,7 +239,7 @@
             <!-- "Calculate Conditional Entropy" button -->
             <div class="row-auto pt-2 pb-3 ">
                 <div class="col-auto text-center ">
-                    <div id="btnCalculateCondEntropy" class="btn btn-primary ">Calcular entropia
+                    <div id="btnCalculateCondEntropy" class="btn btn-primary ">Calcular entropía
                         condicional
                     </div>
                     <script type="module">
@@ -263,7 +264,7 @@
                         <span>Carlos López Nozal</span>
                     </li>
                     <li class="mb-2" style="list-style-type: none;">
-                        <span>Gadea Lucas Perez</span>
+                        <span>Gadea Lucas Pérez</span>
                     </li>
                 </ul>
             </div>
@@ -276,7 +277,7 @@
                     .then(repo => {
                       let d = new Date(repo.updated_at);
                       document.querySelector(".date").textContent =
-                        `Ultima actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
+                        `Última actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
                     });
                 </script>
             </div>

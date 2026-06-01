@@ -20,30 +20,30 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de entropia</title>
+    <title>Calculadora de entropía</title>
 </head>
 
 <body>
     <!-- Header -->
  <header class="py-3 mb-4 border-bottom bg-body-secondary bg-opacity-75 ">
 
-        <div class="d-flex align-items-center gap-2 ">
+        <div class="d-flex align-items-center gap-2 px-2">
             <a href="https://www.ubu.es" class="d-flex align-items-center me-2 ">
-                <img src="/img/ubulogocolorfull.png" width="100" height="50">
+                <img src="/img/ubulogocolorfull.png" width="100" height="50" alt="Universidad de Burgos">
             </a>
             <a href="../index.html" class="fw-bold fs-5 ms-2 me-2 nav-link link-dark">Simulador árbol de decisión (Algoritmo C4.5) </a> 
           <div class="d-flex flex-row align-items-center gap-2 ms-auto">
-            <a href="../index.html" class="btn btn-outline-secondary btn-sm">Menu</a>
-            <a class="btn btn-outline-secondary btn-sm">Entropia</a>
-            <a href="../Elección de nodo/index.html" class="btn btn-outline-secondary btn-sm">Elección de nodo</a>
-            <button class="btn btn-outline-secondary btn-sm">Árbol de decisión C4.5</button>
+            <a href="../index.html" class="step-btn text-decoration-none">Menú</a>
+            <span class="step-btn active-step">Entropía</span>
+            <a href="../Elección de nodo/index.html" class="step-btn text-decoration-none">Elección de nodo</a>
+            <span class="step-btn" aria-disabled="true" title="Sección no disponible">Árbol de decisión C4.5</span>
           </div>
         </div>
     </header>
     <div class="container pb-2">
         <div class="section-switcher">
-            <span class="section-switcher-current">Entropia</span>
-            <a href="../entropia condicional/index.html" class="section-switcher-link">Entropia condicional</a>
+            <span class="section-switcher-current">Entropía</span>
+            <a href="../entropia condicional/index.html" class="section-switcher-link">Entropía condicional</a>
         </div>
         <!-- Info card -->
         <div class="row-auto p-2 pb-4">
@@ -54,21 +54,21 @@
                         <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
                             data-bs-toggle="collapse" href="#generalInfoEntropy" aria-expanded="false"
                             aria-controls="generalInfoEntropy">
-                            Informacion general
+                            Información general
                         </a>
                     </div>
                     <div class="collapse" id="generalInfoEntropy" aria-labelledby="generalInfo"
                         data-parent="#accordionInfo">
                         <div class="card-body ">
                             <p class="card-text fw-light">
-                                En teoria de la informacion, la entropia es una medida de impureza, incertidumbre o
+                                En teoría de la información, la entropía es una medida de impureza, incertidumbre o
                                 aleatoriedad en un conjunto de datos.
                                 En datasets con clases binarias, donde las variables solo pueden tener dos posibles
-                                valores de salida, el valor de la entropia esta entre 0 y 1, ambos incluidos.
-                                Cuanto mayor es la entropia, mas impuro es el dataset.
+                                valores de salida, el valor de la entropía está entre 0 y 1, ambos incluidos.
+                                Cuanto mayor es la entropía, más impuro es el dataset.
                             </p>
                             <a href="https://en.wikipedia.org/wiki/Entropy_(information_theory)"
-                                class="btn btn-outline-dark ">Saber mas</a>
+                                class="btn btn-outline-dark ">Saber más</a>
                         </div>
                     </div>
                     <!-- Calculation -->
@@ -76,15 +76,15 @@
                         <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
                             data-bs-toggle="collapse" href="#calcInfoEntropy" aria-expanded="false"
                             aria-controls="calcInfoEntropy">
-                            Calculo
+                            Cálculo
                         </a>
                     </div>
                     <div class="collapse" id="calcInfoEntropy" aria-labelledby="calculation"
                         data-parent="#accordionInfo">
                         <div class="card-body ">
                             <p class="card-text fw-light"></p>
-                            La entropia de un dataset respecto a una variable objetivo o clase se calcula usando la
-                            siguiente formula:
+                            La entropía de un dataset respecto a una variable objetivo o clase se calcula usando la
+                            siguiente fórmula:
                             </p>
                             <p class="card-text fw-light">
                                 \(E(X) = - \sum_{i=1}^{n} (p_i \log_2(p_i)) \)
@@ -94,8 +94,8 @@
                             </p>
                             <ul class="card-text fw-light">
                                 <li>\(X\) es el dataset</li>
-                                <li>\(n\) es el numero de clases</li>
-                                <li>\(p_i\) es la proporcion de instancias (datos o filas) que pertenecen a la clase \(i\)</li>
+                                <li>\(n\) es el número de clases</li>
+                                <li>\(p_i\) es la proporción de instancias (datos o filas) que pertenecen a la clase \(i\)</li>
                             </ul>
                         </div>
                     </div>
@@ -106,7 +106,7 @@
 
             <!-- Entropy function graph -->
             <div class="col-xl-5 col-lg-6 text-center">
-                <p class="fs-2">Funcion de entropia binaria</p>
+                <p class="fs-2">Función de entropía binaria</p>
                 <!-- Info alert if more than 2 classes -->
                 <div class="row-auto">
                     <div class="col-auto">
@@ -115,9 +115,9 @@
                             <button type="button" class="btn-close"
                                 onclick="$('#alert-3-plus-classes').addClass('d-none');"></button>
                             <div class="bi bi-info-circle-fill p-2 "></div>
-                            Estas usando mas de 2 clases. Los resultados no se pueden mostrar en la grafica de
-                            entropia binaria.
-                            La grafica solo representa la curva de entropia para 2 clases.
+                            Estás usando más de 2 clases. Los resultados no se pueden mostrar en la gráfica de
+                            entropía binaria.
+                            La gráfica solo representa la curva de entropía para 2 clases.
                         </div>
                     </div>
                 </div>
@@ -126,7 +126,7 @@
 
             <!-- Entropy calculator -->
             <div class="col-xl-7 col-lg-6">
-                <p class="fs-2 text-center">Calculadora de entropia</p>
+                <p class="fs-2 text-center">Calculadora de entropía</p>
                 <!-- Alert sum 0 -->
                 <div class="row-auto">
                     <div class="col-auto">
@@ -144,7 +144,7 @@
                         <div class="alert alert-danger alert-dismissible d-none" id="alert-invalid-val">
                             <button type="button" class="btn-close"
                                 onclick="$('#alert-invalid-val').addClass('d-none');"></button>
-                            Al menos un valor no es valido. Usa solo enteros positivos como valores de entrada.
+                            Al menos un valor no es válido. Usa solo enteros positivos como valores de entrada.
                         </div>
                     </div>
                 </div>
@@ -154,7 +154,7 @@
                         <div class="alert alert-danger alert-dismissible d-none" id="alert-empty-input">
                             <button type="button" class="btn-close"
                                 onclick="$('#alert-empty-input').addClass('d-none');"></button>
-                            Al menos un campo esta vacio. Anade valores enteros positivos en cada campo.
+                            Al menos un campo está vacío. Añade valores enteros positivos en cada campo.
                         </div>
                     </div>
                 </div>
@@ -203,7 +203,7 @@
                             </table>
                         </div>
                         <div class="row-auto mt-2">
-                            <div id="btnCalculateEntropy" class="btn btn-primary ">Calcular entropia
+                            <div id="btnCalculateEntropy" class="btn btn-primary ">Calcular entropía
                             </div>
                         </div>
                     </div>
@@ -250,7 +250,7 @@
                         <span>Carlos López Nozal</span>
                     </li>
                     <li class="mb-2" style="list-style-type: none;">
-                        <span>Gadea Lucas Perez</span>
+                        <span>Gadea Lucas Pérez</span>
                     </li>
                 </ul>
             </div>
@@ -263,7 +263,7 @@
                     .then(repo => {
                       let d = new Date(repo.updated_at);
                       document.querySelector(".date").textContent =
-                        `Ultima actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
+                        `Última actualización: ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}`;
                     });
                 </script>
             </div>
@@ -322,7 +322,7 @@
             .attr("y", -35)
             .attr("x", -height / 2)
             .attr("transform", "rotate(-90)")
-            .html("Entropia");
+            .html("Entropía");
 
         // Add function graph
         var line = d3.line()
