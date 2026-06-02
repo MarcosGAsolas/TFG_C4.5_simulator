@@ -45,7 +45,7 @@ function addCategory() {
     catCell.id = "c" + catCount;
     var catLabel = document.createElement("label");
     catLabel.classList.add("form-control-plaintext");
-    catLabel.textContent = "Categoria " + +catCount + ":";
+    catLabel.textContent = "Categoría " + +catCount + ":";
     catCell.appendChild(catLabel);
 
     var removeButton = createRemoveButton();

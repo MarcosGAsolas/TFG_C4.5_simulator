@@ -9,6 +9,31 @@ body {
     margin-bottom: 180px;
 }
 
+.step-btn {
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 400;
+    color: rgba(0, 0, 0, 0.45);
+    transition: all 0.25s ease;
+    padding: 0.2rem 0.4rem;
+}
+
+.step-btn:hover {
+    color: rgba(0, 0, 0, 0.75);
+    transform: translateY(-1px);
+}
+
+.active-step {
+    color: rgba(0, 0, 0, 1);
+    font-weight: 700;
+    transform: scale(1.03);
+}
+
+.step-btn[aria-disabled="true"] {
+    cursor: default;
+}
+
 footer {
     position: absolute;
     bottom: 0;
@@ -26,4 +51,14 @@ footer {
     width: 50vw;
 
     transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+    header .d-flex {
+        flex-wrap: wrap;
+    }
+
+    .step-btn {
+        font-size: 0.95rem;
+    }
 }

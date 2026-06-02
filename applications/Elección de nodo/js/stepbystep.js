@@ -19,25 +19,25 @@ const pasos = [
     {
         titulo: "Cálculo de ganancia de la información",
         texto: "Con los umbrales calculados, se puede medir cuánto reduce cada división la incertidumbre del dataset.",
-        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información"],
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia de información"],
         render: renderPasoGananciaDeInformacion
     },
     {
         titulo: "Split Info",
         texto: "",
-        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información", "Split Info"],
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia de información", "Split Info"],
         render: renderPasoSplitInfo
     },
     {
         titulo: "Gain Ratio",
         texto: "",
-        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información", "Split Info", "Gain Ratio"],
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia de información", "Split Info", "Gain Ratio"],
         render: renderPasoGainRatio
     },
     {
         titulo: "Nodo elegido",
         texto: "",
-        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia información", "Split Info", "Gain Ratio"],
+        columnasResultado: ["Umbral", "Umbral calculado", "Entropía", "Ganancia de información", "Split Info", "Gain Ratio"],
         render: renderPasoNodoElegido
     }
 ];
@@ -245,21 +245,13 @@ function crearTablaEntradaUmbral() {
     tbody.id = "cuerpo-tabla-umbral";
 
     table.appendChild(thead);
-    table.appendChild(tbody);
-    wrapper.appendChild(table);
+    table.appendChild(tbody); 
     bloque.appendChild(encabezado);
-    bloque.appendChild(intro);
+    bloque.appendChild(intro); 
     bloque.appendChild(crearGeneradorTablaUmbral());
-    bloque.appendChild(wrapper);
-
-    const acciones = document.createElement("div");
-    acciones.classList.add("threshold-table-actions");
-
-    const botonCalcular = crearBoton("", ["btn", "btn-dark", "threshold-calc-btn"]);
-    botonCalcular.innerHTML = `<i class="bi bi-calculator" aria-hidden="true"></i><span>${textoAccion.boton}</span>`;
-    botonCalcular.addEventListener("click", calcularUmbralesDeTabla);
-    acciones.appendChild(botonCalcular);
-    bloque.appendChild(acciones);
+    bloque.appendChild(crearAccionesTablaUmbral(textoAccion));
+    wrapper.appendChild(table);
+    bloque.appendChild(wrapper); 
 
     return bloque;
 }
@@ -322,8 +314,8 @@ function crearGeneradorTablaUmbral() {
             id: "generador-clases-umbral",
             label: "Clases posibles",
             type: "text",
-            value: "Si, No",
-            placeholder: "Si, No, Tal vez"
+            value: "Sí, No",
+            placeholder: "Sí, No, Tal vez"
         },
         {
             id: "generador-filas-umbral",
@@ -366,12 +358,25 @@ function crearGeneradorTablaUmbral() {
         generador.appendChild(grupo);
     });
 
+    return generador;
+}
+
+function crearAccionesTablaUmbral(textoAccion) {
+    const acciones = document.createElement("div");
+    acciones.classList.add("threshold-table-actions");
+
     const botonGenerar = crearBoton("", ["btn", "btn-outline-dark", "threshold-generate-btn"]);
     botonGenerar.innerHTML = '<i class="bi bi-shuffle" aria-hidden="true"></i><span>Generar tabla</span>';
     botonGenerar.addEventListener("click", generarTablaUmbralAleatoria);
-    generador.appendChild(botonGenerar);
 
-    return generador;
+    const botonCalcular = crearBoton("", ["btn", "btn-dark", "threshold-calc-btn"]);
+    botonCalcular.innerHTML = `<i class="bi bi-calculator" aria-hidden="true"></i><span>${textoAccion.boton}</span>`;
+    botonCalcular.addEventListener("click", calcularUmbralesDeTabla);
+
+    acciones.appendChild(botonGenerar);
+    acciones.appendChild(botonCalcular);
+
+    return acciones;
 }
 
 function agregarFilaTablaUmbral(valor = "", clase = "") {
@@ -468,10 +473,9 @@ function mostrarErrorGenerador(texto) {
     const generador = document.querySelector(".threshold-generator");
     if (!generador) return;
 
-    const mensaje = document.createElement("p");
+    const mensaje = crearAlertaError(texto);
     mensaje.id = "threshold-generator-error";
     mensaje.classList.add("threshold-generator-error");
-    mensaje.textContent = texto;
     generador.appendChild(mensaje);
 }
 
@@ -486,22 +490,30 @@ function calcularUmbralesDeTabla() {
     const contenedorResultados = document.getElementById("stepExtraContainer");
     if (!contenedorResultados) return;
 
+    limpiarErrorCalculoPrincipal();
+
     try {
         datosTablaOriginal = obtenerDatosTablaUmbral();
+        const resultado = obtenerDatosOrdenadosPorAtributo(datosTablaOriginal, datosTablaOriginal[0][0], datosTablaOriginal[0][1]);
+        const cambios = obtenerCambiosDeClase(resultado.filas);
+
+        renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado);
+        if (currentStep === 4) {
+            renderizarNodoElegido(resultado.cabecera[0], resultado.filas, cambios);
+        }
+        actualizarLayoutResultados(true);
     } catch (error) {
-        limpiarElemento(contenedorResultados);
-        contenedorResultados.appendChild(crearMensaje(error.message));
-        return;
+        const alerta = crearAlertaError(error.message);
+        alerta.id = "threshold-calculation-error";
+        contenedorResultados.appendChild(alerta);
     }
+}
 
-    const resultado = obtenerDatosOrdenadosPorAtributo(datosTablaOriginal, datosTablaOriginal[0][0], datosTablaOriginal[0][1]);
-    const cambios = obtenerCambiosDeClase(resultado.filas);
-
-    renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado);
-    if (currentStep === 4) {
-        renderizarNodoElegido(resultado.cabecera[0], resultado.filas, cambios);
+function limpiarErrorCalculoPrincipal() {
+    const alerta = document.getElementById("threshold-calculation-error");
+    if (alerta) {
+        alerta.remove();
     }
-    actualizarLayoutResultados(true);
 }
 
 function renderizarTablasResultadoUmbral(cabecera, filas, cambios, nombresColumnas, mostrarVacias = false) {
@@ -570,7 +582,7 @@ function crearCalculadoraUmbralManual() {
     valor2.step = "any";
 
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
-    const resultado = document.createElement("span");
+    const resultado = document.createElement("div");
     resultado.classList.add("fw-semibold");
 
     boton.addEventListener("click", () => {
@@ -578,11 +590,11 @@ function crearCalculadoraUmbralManual() {
         const n2 = Number(valor2.value);
 
         if (valor1.value === "" || valor2.value === "" || Number.isNaN(n1) || Number.isNaN(n2)) {
-            resultado.textContent = "Introduce dos números.";
+            mostrarResultadoCalculadora(resultado, "Introduce dos números.", true);
             return;
         }
 
-        resultado.textContent = `Umbral: ${calcularUmbral(n1, n2).toFixed(2)}`;
+        mostrarResultadoCalculadora(resultado, `Umbral: ${calcularUmbral(n1, n2).toFixed(2)}`);
     });
 
     fila.appendChild(valor1);
@@ -623,7 +635,7 @@ function crearCalculadoraGananciaInformacionManual() {
     entropiaDivision.min = "0";
 
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
-    const resultado = document.createElement("span");
+    const resultado = document.createElement("div");
     resultado.classList.add("fw-semibold");
 
     boton.addEventListener("click", () => {
@@ -636,11 +648,11 @@ function crearCalculadoraGananciaInformacionManual() {
             Number.isNaN(original) ||
             Number.isNaN(division)
         ) {
-            resultado.textContent = "Introduce dos números.";
+            mostrarResultadoCalculadora(resultado, "Introduce dos números.", true);
             return;
         }
 
-        resultado.textContent = `Ganancia: ${(original - division).toFixed(2)}`;
+        mostrarResultadoCalculadora(resultado, `Ganancia: ${(original - division).toFixed(2)}`);
     });
 
     fila.appendChild(entropiaOriginal);
@@ -681,7 +693,7 @@ function crearCalculadoraSplitInfoManual() {
 
     const botonAgregar = crearBoton("Añadir grupo", ["btn", "btn-outline-secondary"]);
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
-    const resultado = document.createElement("span");
+    const resultado = document.createElement("div");
     resultado.classList.add("fw-semibold");
 
     botonAgregar.addEventListener("click", () => {
@@ -698,11 +710,11 @@ function crearCalculadoraSplitInfoManual() {
             valores.some(item => item.texto === "" || Number.isNaN(item.valor) || item.valor < 0) ||
             valores.reduce((total, item) => total + item.valor, 0) === 0
         ) {
-            resultado.textContent = "Introduce tamaños de grupo válidos.";
+            mostrarResultadoCalculadora(resultado, "Introduce tamaños de grupo válidos.", true);
             return;
         }
 
-        resultado.textContent = `Split Info: ${calcularSplitInfoDeTamanos(...valores.map(item => item.valor)).toFixed(2)}`;
+        mostrarResultadoCalculadora(resultado, `Split Info: ${calcularSplitInfoDeTamanos(...valores.map(item => item.valor)).toFixed(2)}`);
     });
 
     acciones.appendChild(botonAgregar);
@@ -762,7 +774,7 @@ function crearCalculadoraGainRatioManual() {
     splitInfo.min = "0";
 
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
-    const resultado = document.createElement("span");
+    const resultado = document.createElement("div");
     resultado.classList.add("fw-semibold");
 
     boton.addEventListener("click", () => {
@@ -776,11 +788,11 @@ function crearCalculadoraGainRatioManual() {
             Number.isNaN(valorSplitInfo) ||
             valorSplitInfo <= 0
         ) {
-            resultado.textContent = "Introduce valores válidos.";
+            mostrarResultadoCalculadora(resultado, "Introduce valores válidos.", true);
             return;
         }
 
-        resultado.textContent = `Gain Ratio: ${(valorGanancia / valorSplitInfo).toFixed(2)}`;
+        mostrarResultadoCalculadora(resultado, `Gain Ratio: ${(valorGanancia / valorSplitInfo).toFixed(2)}`);
     });
 
     fila.appendChild(ganancia);
@@ -861,7 +873,7 @@ function renderizarNodoElegido(nombreAtributo, filasOrdenadas, cambios) {
     const ramas = document.createElement("div");
     ramas.classList.add("chosen-node-branches");
 
-    ramas.appendChild(crearRamaNodoElegido("Si", "left", obtenerResultadoRamaNodo(filasSi)));
+    ramas.appendChild(crearRamaNodoElegido("Sí", "left", obtenerResultadoRamaNodo(filasSi)));
     ramas.appendChild(crearRamaNodoElegido("No", "right", obtenerResultadoRamaNodo(filasNo)));
 
     contenedor.appendChild(nodo);
@@ -903,6 +915,32 @@ function crearMensaje(texto) {
     mensaje.classList.add("alert", "alert-light", "border", "mb-0");
     mensaje.textContent = texto;
     return mensaje;
+}
+
+function crearAlertaError(texto) {
+    const alerta = document.createElement("div");
+    alerta.classList.add("alert", "alert-danger", "alert-dismissible", "mb-0");
+    alerta.textContent = texto;
+
+    const botonCerrar = document.createElement("button");
+    botonCerrar.type = "button";
+    botonCerrar.classList.add("btn-close");
+    botonCerrar.addEventListener("click", () => alerta.remove());
+    alerta.prepend(botonCerrar);
+
+    return alerta;
+}
+
+function mostrarResultadoCalculadora(resultado, texto, esError = false) {
+    limpiarElemento(resultado);
+    resultado.className = esError ? "" : "fw-semibold";
+
+    if (esError) {
+        resultado.appendChild(crearAlertaError(texto));
+        return;
+    }
+
+    resultado.textContent = texto;
 }
 
 function crearTablaOrdenada(cabecera, filas, cambios, mostrarVacia = false) {
@@ -987,7 +1025,7 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
             tr.appendChild(tdUmbralCalculado);
             tr.appendChild(tdEntropia);
 
-            if (nombresColumnas.includes("Ganancia información")) {
+            if (nombresColumnas.includes("Ganancia de información")) {
                 const gananciaInformacion = calcularGananciaInformacionParaUmbral(filasOrdenadas, cambio.umbral);
                 tr.appendChild(crearCelda(gananciaInformacion.toFixed(2), ["fw-semibold"]));
             }
@@ -1090,7 +1128,7 @@ function crearInfoCardUmbral() {
     card.appendChild(crearSeccionCard(
         "generalInfoUmbral",
         "generalInfoUmbralBody",
-        "Para qué sirve el cálculo del umbral",
+        "Información general",
         [
             "El umbral permite dividir un atributo numérico en dos grupos. En C4.5 se buscan puntos donde cambia la clase, porque esos puntos pueden separar mejor los datos.",
             "Primero se ordenan los valores numéricos. Después se comparan las clases de filas consecutivas. Cuando la clase cambia, se calcula un candidato a umbral entre esos dos valores."
@@ -1117,7 +1155,7 @@ function crearInfoCardGananciaInformacion() {
     card.appendChild(crearSeccionCard(
         "generalInfoGain",
         "generalInfoGainBody",
-        "Información general de la ganancia de información",
+        "Información general",
         [
             "La ganancia de información mide la reducción de la entropía después de dividir el conjunto de datos.",
             "C4.5 evalúa divisiones candidatas y favorece las que reducen más la incertidumbre."
@@ -1144,7 +1182,7 @@ function crearInfoCardSplitInfo() {
     card.appendChild(crearSeccionCard(
         "generalInfoSplit",
         "generalInfoSplitBody",
-        "Información general de Split Info",
+        "Información general",
         [
             "Split Info mide cómo de repartida queda la división generada por un umbral.",
             "Una división muy desequilibrada tiene un Split Info bajo; una división más repartida tiene un valor mayor."
@@ -1171,7 +1209,7 @@ function crearInfoCardGainRatio() {
     card.appendChild(crearSeccionCard(
         "generalInfoGainRatio",
         "generalInfoGainRatioBody",
-        "Información general de Gain Ratio",
+        "Información general",
         [
             "Gain Ratio ajusta la ganancia de información usando Split Info.",
             "C4.5 lo utiliza para comparar divisiones evitando favorecer atributos que separan demasiado los datos."
@@ -1198,7 +1236,7 @@ function crearInfoCardNodoElegido() {
     card.appendChild(crearSeccionCard(
         "generalInfoNode",
         "generalInfoNodeBody",
-        "Cómo se elige el nodo",
+        "Información general",
         [
             "El nodo elegido es el umbral con mejor Gain Ratio entre los candidatos calculados.",
             "La condición del nodo separa los datos en dos ramas: una para los valores menores o iguales al umbral y otra para los valores mayores."
