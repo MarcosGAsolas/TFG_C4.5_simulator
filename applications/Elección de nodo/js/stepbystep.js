@@ -948,7 +948,12 @@ function crearTablaOrdenada(cabecera, filas, cambios, mostrarVacia = false) {
     wrapper.classList.add("table-responsive", "mb-3");
 
     const table = document.createElement("table");
-    table.classList.add("table", "table-bordered", "align-middle", "text-center");
+    table.classList.add("table", "caption-top", "table-bordered", "align-middle", "text-center");
+
+    const caption = document.createElement("caption");
+    caption.classList.add("threshold-results-caption");
+    caption.textContent = "Tabla ordenada";
+    table.appendChild(caption);
 
     table.appendChild(crearCabeceraTabla(cabecera));
 
@@ -968,12 +973,13 @@ function crearTablaOrdenada(cabecera, filas, cambios, mostrarVacia = false) {
             );
 
             const tdValor = crearCelda(fila[0]);
+            const tdClase = crearCelda(fila[1]);
             if (cambioActual) {
-                tdValor.classList.add("umbral-highlight", "fw-semibold");
+                tdClase.classList.add("umbral-highlight", "fw-semibold");
             }
 
             tr.appendChild(tdValor);
-            tr.appendChild(crearCelda(fila[1]));
+            tr.appendChild(tdClase);
             tbody.appendChild(tr);
         });
     }
@@ -1000,7 +1006,12 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
     wrapper.classList.add("table-responsive");
 
     const table = document.createElement("table");
-    table.classList.add("table", "table-bordered", "align-middle", "text-center");
+    table.classList.add("table", "caption-top", "table-bordered", "align-middle", "text-center");
+
+    const caption = document.createElement("caption");
+    caption.classList.add("threshold-results-caption");
+    caption.textContent = "Valores calculados";
+    table.appendChild(caption);
 
     table.appendChild(crearCabeceraTabla(nombresColumnas));
 

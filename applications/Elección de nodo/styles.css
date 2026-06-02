@@ -251,6 +251,12 @@ footer {
     background-color: #f1f7fb;
 }
 
+.threshold-results-caption {
+    color: #212529;
+    font-weight: 700;
+    text-align: center;
+}
+
 .threshold-data-table .form-control {
     border-color: #d5dde7;
     border-radius: 6px;
@@ -358,30 +364,31 @@ footer {
     font-weight: 600;
 }
 
+.step-info-column {
+    width: 100%;
+    max-width: 100%;
+}
+
 @media (min-width: 1200px) {
     .step-layout-row.threshold-results-active {
         display: grid;
-        grid-template-columns: 450px 530px minmax(620px, 1fr);
+        grid-template-columns: minmax(420px, 480px) minmax(0, 1050px);
         gap: 1rem;
         align-items: start;
-        width: min(1660px, calc(100vw - 2rem));
-        margin-inline: auto;
+        justify-content: center;
+        width: min(1550px, calc(100vw - 2rem));
+        margin-right: auto;
+        margin-left: max(1rem, calc((100vw - 1550px) / 2 + 9rem));
     }
 
-    .threshold-results-active .step-info-column {
+    .threshold-results-active .step-data-column {
         grid-column: 1;
         width: 100%;
         max-width: 100%;
     }
 
-    .threshold-results-active .step-data-column {
-        grid-column: 2;
-        width: 100%;
-        max-width: 100%;
-    }
-
     .threshold-results-layout {
-        grid-column: 3;
+        grid-column: 2;
         width: 100%;
         max-width: 100%;
     }
@@ -390,6 +397,16 @@ footer {
         display: grid;
         gap: 1rem;
         margin-top: 0 !important;
+    }
+
+    .threshold-results-layout .table {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .threshold-results-layout .table th,
+    .threshold-results-layout .table td {
+        white-space: normal;
     }
 }
 
