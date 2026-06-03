@@ -92,11 +92,11 @@
                         <div class="card-body ">
                             <p class="card-text fw-light">
                             <p class="card-text fw-light">
-                                Para un problema de clasificación binaria, la entropía condicional \( E(Y|X) \) se
+                                Para un problema de clasificación binaria, la entropía condicional \( H(Y|X) \) se
                                 calcula usando la siguiente fórmula:
                             </p>
                             <p class="card-text fw-light">
-                                \[ E(Y|X) = \sum_{x \in X} p(x) E(Y|X = x) \]
+                                \[ H(Y|X) = \sum_{x \in X} p(x) H(Y|X = x) \]
                             </p>
                             <p class="card-text fw-light">
                                 Donde:
@@ -110,11 +110,11 @@
                             </ul>
                             <p class="card-text fw-light">
                                 Las entropías condicionales para cada categoría o valor \( x \) del atributo \(
-                                X \) (mostradas como \( E(Categoría) \) en la calculadora inferior) se calculan con la
+                                X \) (mostradas como \( H(Categoría) \) en la calculadora inferior) se calculan con la
                                 siguiente fórmula:
                             </p>
                             <p class="card-text fw-light">
-                                \[ E(Y|X = x) = - \sum_{y \in Y} p(y|x)\log_2(p(y|x)) \]
+                                \[ H(Y|X = x) = - \sum_{y \in Y} p(y|x)\log_2(p(y|x)) \]
                             </p>
                             <p class="card-text fw-light">
                                 Donde:
@@ -132,13 +132,13 @@
                             <b>Por ejemplo</b>, considera el espacio muestral de la clase (\(Y\)): \(\text{Jugar al golf} = \{\text{sí}, \text{no}\}\), y el espacio muestral del atributo (\(X\)): \(\text{Tiempo} = \{\text{Soleado}, \text{Lluvioso}\}\). La entropía condicional se expresa como:
                             </p>
                             <p class="card-text fw-light">
-                                \[ E(\text{Jugar al golf} | \text{Tiempo}) = \sum_{x \in \text{Tiempo}} p(x) E(\text{Jugar al golf} | \text{Tiempo} = x) \]
+                                \[ H(\text{Jugar al golf} | \text{Tiempo}) = \sum_{x \in \text{Tiempo}} p(x) H(\text{Jugar al golf} | \text{Tiempo} = x) \]
                             </p>
                             <p class="card-text fw-light">
                                 En concreto, para la categoría "Soleado", podemos calcular:
                             </p>
                             <p class="card-text fw-light">
-                                \[ E(\text{Jugar al golf} | \text{Tiempo} = \text{Soleado}) = - \sum_{y \in \text{Jugar al golf}} p(y|\text{Soleado}) \log_2(p(y|\text{Soleado})) \] 
+                                \[ H(\text{Jugar al golf} | \text{Tiempo} = \text{Soleado}) = - \sum_{y \in \text{Jugar al golf}} p(y|\text{Soleado}) \log_2(p(y|\text{Soleado})) \]
                             </p>
                             </p>
                         </div>
@@ -190,8 +190,8 @@
                                     <th>Clase 1</th>
                                     <th>Clase 2</th>
                                     <th>Proporción</th>
-                                    <th>E(Categoría)</th>
-                                    <th class="text-center ">EC(Atributo)</th>
+                                    <th>H(Categoría)</th>
+                                    <th class="text-center ">HC(Atributo)</th>
                                 </tr>
                             </thead>
                             <tbody>
