@@ -61,6 +61,8 @@ function mostrarPaso() {
     limpiarElementoPorId("formulaUmbral");
     limpiarElementoPorId("stepTableContainer");
     limpiarElementoPorId("stepExtraContainer");
+    limpiarElementoPorId("legendContainer");
+    mostrarFilaLeyenda(false);
     actualizarLayoutResultados(false);
 
     const infoCardContainer = document.getElementById("infoCardContainer");
@@ -109,6 +111,8 @@ function mostrarPaso() {
     if (tableContainer) {
         paso.render(tableContainer, paso);
     }
+
+    renderizarLeyendaPasoActual();
 
     renderizarMathJax();
 }
@@ -525,6 +529,64 @@ function renderizarTablasResultadoUmbral(cabecera, filas, cambios, nombresColumn
     contenedorResultados.appendChild(crearTablaUmbrales(cambios, filas, nombresColumnas, mostrarVacias));
 }
 
+function renderizarLeyendaPasoActual() {
+    const contenedorLeyenda = document.getElementById("legendContainer");
+    if (!contenedorLeyenda) return;
+
+    const datosLeyenda = obtenerDatosLeyenda(currentStep);
+    if (!datosLeyenda) return;
+
+    mostrarFilaLeyenda(true);
+    contenedorLeyenda.appendChild(crearLeyenda(datosLeyenda));
+}
+
+function mostrarFilaLeyenda(mostrar) {
+    const filaLeyenda = document.getElementById("legendRow");
+    if (filaLeyenda) {
+        filaLeyenda.classList.toggle("d-none", !mostrar);
+    }
+}
+
+function obtenerDatosLeyenda(stepIndex) {
+    const itemsLeyendaUmbral = [
+        {
+            tipo: "swatch",
+            titulo: "Cambio de clase",
+            texto: "Las celdas amarillas de la tabla ordenada indican las filas donde cambia la clase entre valores consecutivos. Esos cambios permiten calcular los umbrales candidatos."
+        },
+        {
+            icono: "bi-sort-numeric-down",
+            titulo: "Tabla ordenada",
+            texto: "Los datos se ordenan por valor como primer paso para identificar correctamente los umbrales."
+        }
+    ];
+
+    const leyendas = [
+        {
+            id: "legendUmbralBody",
+            items: itemsLeyendaUmbral
+        },
+        {
+            id: "legendGainBody",
+            items: itemsLeyendaUmbral
+        },
+        {
+            id: "legendSplitInfoBody",
+            items: itemsLeyendaUmbral
+        },
+        {
+            id: "legendGainRatioBody",
+            items: itemsLeyendaUmbral
+        },
+        {
+            id: "legendNodeBody",
+            items: itemsLeyendaUmbral
+        }
+    ];
+
+    return leyendas[stepIndex];
+}
+
 function obtenerDatosTablaUmbral() {
     const filas = document.querySelectorAll("#cuerpo-tabla-umbral tr");
 
@@ -619,18 +681,18 @@ function crearCalculadoraGananciaInformacionManual() {
 
     const formula = document.createElement("p");
     formula.classList.add("mb-3");
-    formula.textContent = "\\(Gain = E(S) - E(S \\mid A)\\)";
+    formula.textContent = "\\(Gain = H(S) - H(S \\mid A)\\)";
 
     const fila = document.createElement("div");
     fila.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
 
     const entropiaOriginal = crearInput("number");
-    entropiaOriginal.placeholder = "E(S)";
+    entropiaOriginal.placeholder = "H(S)";
     entropiaOriginal.step = "any";
     entropiaOriginal.min = "0";
 
     const entropiaDivision = crearInput("number");
-    entropiaDivision.placeholder = "E(S|A)";
+    entropiaDivision.placeholder = "H(S|A)";
     entropiaDivision.step = "any";
     entropiaDivision.min = "0";
 
@@ -952,7 +1014,7 @@ function crearTablaOrdenada(cabecera, filas, cambios, mostrarVacia = false) {
 
     const caption = document.createElement("caption");
     caption.classList.add("threshold-results-caption");
-    caption.textContent = "Tabla ordenada";
+    caption.textContent = "Tabla ordenada: paso 1";
     table.appendChild(caption);
 
     table.appendChild(crearCabeceraTabla(cabecera));
@@ -1010,7 +1072,7 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
 
     const caption = document.createElement("caption");
     caption.classList.add("threshold-results-caption");
-    caption.textContent = "Valores calculados";
+    caption.textContent = "Valores calculados: paso 2";
     table.appendChild(caption);
 
     table.appendChild(crearCabeceraTabla(nombresColumnas));
@@ -1179,8 +1241,8 @@ function crearInfoCardGananciaInformacion() {
         "Cálculo",
         [
             "La ganancia de información mide cuánto disminuye la incertidumbre del conjunto \\(S\\) al dividirlo con un atributo \\(A\\).",
-            "\\(Gain(S, A) = E(S) - \\sum_{v \\in Valores(A)} \\frac{\\vert{}S_v\\vert{}}{\\vert{}S\\vert{}} E(S_v)\\)",
-            "Donde \\(E(S)\\) es la entropía del conjunto original y \\(E(S_v)\\) es la entropía de cada subconjunto generado."
+            "\\(Gain(S, A) = H(S) - \\sum_{v \\in Valores(A)} \\frac{\\vert{}S_v\\vert{}}{\\vert{}S\\vert{}} H(S_v)\\)",
+            "Donde \\(H(S)\\) es la entropía del conjunto original y \\(H(S_v)\\) es la entropía de cada subconjunto generado."
         ]
     ));
 
@@ -1265,6 +1327,70 @@ function crearInfoCardNodoElegido() {
     ));
 
     return card;
+}
+
+function crearLeyenda(datosLeyenda) {
+    const card = crearCardDesplegable();
+    card.classList.add("threshold-legend-card");
+
+    const header = document.createElement("div");
+    header.classList.add("card-header", "fs-6");
+
+    const link = document.createElement("a");
+    link.classList.add(
+        "collapsed",
+        "d-block",
+        "link-body-emphasis",
+        "link-offset-2",
+        "link-offset-2-hover",
+        "link-underline",
+        "link-underline-opacity-0",
+        "link-underline-opacity-50-hover"
+    );
+    link.setAttribute("data-bs-toggle", "collapse");
+    link.setAttribute("href", `#${datosLeyenda.id}`);
+    link.setAttribute("aria-expanded", "false");
+    link.setAttribute("aria-controls", datosLeyenda.id);
+    link.textContent = "Leyenda";
+    header.appendChild(link);
+
+    const collapse = document.createElement("div");
+    collapse.classList.add("collapse");
+    collapse.id = datosLeyenda.id;
+
+    const body = document.createElement("div");
+    body.classList.add("card-body", "threshold-legend-body");
+
+    datosLeyenda.items.forEach(item => {
+        body.appendChild(crearItemLeyenda(item));
+    });
+    collapse.appendChild(body);
+    card.appendChild(header);
+    card.appendChild(collapse);
+
+    return card;
+}
+
+function crearItemLeyenda(item) {
+    const contenedor = document.createElement("div");
+    contenedor.classList.add("threshold-legend-item");
+
+    const marcador = document.createElement("span");
+    if (item.tipo === "swatch") {
+        marcador.classList.add("threshold-legend-swatch", "umbral-highlight");
+    } else {
+        marcador.classList.add("threshold-legend-icon", "bi", item.icono);
+    }
+    marcador.setAttribute("aria-hidden", "true");
+
+    const texto = document.createElement("p");
+    texto.classList.add("card-text", "fw-light", "mb-0");
+    texto.innerHTML = `<strong>${item.titulo}:</strong> ${item.texto}`;
+
+    contenedor.appendChild(marcador);
+    contenedor.appendChild(texto);
+
+    return contenedor;
 }
 
 function crearCardDesplegable() {
