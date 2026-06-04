@@ -1,6 +1,7 @@
 import {
     calcularUmbral,
     calcularEntropiaParaUmbral,
+    calcularEntropiaDeGrupo,
     calcularGananciaInformacionParaUmbral
 } from '../../lib/funcionesCalcAlgC45.js';
 
@@ -158,6 +159,65 @@ function crearCeldaCabecera(texto, clases = []) {
     celda.textContent = texto;
     clases.forEach(clase => celda.classList.add(clase));
     return celda;
+}
+
+function hacerCeldaInteractiva(celda, titulo, accion) {
+    celda.classList.add("interactive-calculation-cell");
+    celda.tabIndex = 0;
+    celda.title = titulo;
+    celda.setAttribute("role", "button");
+    celda.addEventListener("click", accion);
+    celda.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            accion();
+        }
+    });
+    return celda;
+}
+
+function crearCabeceraInteractiva(nombreColumna) {
+    const th = crearCeldaCabecera("");
+    const boton = crearBoton(nombreColumna, ["interactive-header-btn"]);
+    const info = obtenerInfoCabeceraInteractiva(nombreColumna);
+
+    if (!info) {
+        th.textContent = nombreColumna;
+        return th;
+    }
+
+    boton.title = info.titulo;
+    boton.addEventListener("click", info.accion);
+    th.appendChild(boton);
+    return th;
+}
+
+function obtenerInfoCabeceraInteractiva(nombreColumna) {
+    const pasosPorColumna = {
+        "Umbral": 0,
+        "Umbral calculado": 0,
+        "Ganancia de información": 1,
+        "Split Info": 2,
+        "Gain Ratio": 3
+    };
+
+    if (nombreColumna === "Entropía") {
+        return {
+            titulo: "Abrir la sección de Entropía.",
+            accion: () => {
+                window.location.href = "../entropia/index.html";
+            }
+        };
+    }
+
+    if (Object.prototype.hasOwnProperty.call(pasosPorColumna, nombreColumna)) {
+        return {
+            titulo: `Ir a la sección de ${nombreColumna}.`,
+            accion: () => navegarAPasoConResultados(pasosPorColumna[nombreColumna])
+        };
+    }
+
+    return null;
 }
 
 function crearBoton(texto, clases = []) {
@@ -436,6 +496,7 @@ function generarTablaUmbralAleatoria() {
         .split(",")
         .map(clase => clase.trim())
         .filter(clase => clase !== "" && !/[0-9]/.test(clase));
+    const clasesDemasiadoLargas = clases.filter(clase => clase.length > 6);
 
     if (!Number.isFinite(minimo) || !Number.isFinite(maximo) || minimo < 0 || maximo < 0) {
         mostrarErrorGenerador("El rango debe tener números válidos y positivos.");
@@ -454,6 +515,11 @@ function generarTablaUmbralAleatoria() {
 
     if (clases.length === 0) {
         mostrarErrorGenerador("Escribe al menos una clase sin números, separada por comas.");
+        return;
+    }
+
+    if (clasesDemasiadoLargas.length > 0) {
+        mostrarErrorGenerador("Cada clase separada por comas puede tener como máximo 6 caracteres.");
         return;
     }
 
@@ -560,6 +626,19 @@ function obtenerDatosLeyenda(stepIndex) {
             texto: "Los datos se ordenan por valor como primer paso para identificar correctamente los umbrales."
         }
     ];
+    const itemsLeyendaNodo = [
+        ...itemsLeyendaUmbral,
+        {
+            tipo: "swatch",
+            titulo: "Hoja definitiva",
+            texto: "En la visualización del nodo elegido, una hoja amarilla indica que esa rama ya es definitiva. Esto significa que todos los valores de la columna de clase de esa rama coinciden con el valor mostrado dentro de la hoja."
+        },
+        {
+            icono: "bi-signpost-split",
+            titulo: "Condición de la rama",
+            texto: "Las etiquetas <= umbral y > umbral indican qué valores siguen cada camino: una rama agrupa los valores menores o iguales al umbral y la otra agrupa los valores superiores al umbral."
+        }
+    ];
 
     const leyendas = [
         {
@@ -580,7 +659,7 @@ function obtenerDatosLeyenda(stepIndex) {
         },
         {
             id: "legendNodeBody",
-            items: itemsLeyendaUmbral
+            items: itemsLeyendaNodo
         }
     ];
 
@@ -636,15 +715,19 @@ function crearCalculadoraUmbralManual() {
     fila.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
 
     const valor1 = crearInput("number");
+    valor1.id = "manual-threshold-value-1";
     valor1.placeholder = "n1";
     valor1.step = "any";
 
     const valor2 = crearInput("number");
+    valor2.id = "manual-threshold-value-2";
     valor2.placeholder = "n2";
     valor2.step = "any";
 
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    boton.id = "manual-threshold-calculate";
     const resultado = document.createElement("div");
+    resultado.id = "manual-threshold-result";
     resultado.classList.add("fw-semibold");
 
     boton.addEventListener("click", () => {
@@ -687,17 +770,21 @@ function crearCalculadoraGananciaInformacionManual() {
     fila.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
 
     const entropiaOriginal = crearInput("number");
+    entropiaOriginal.id = "manual-gain-original";
     entropiaOriginal.placeholder = "H(S)";
     entropiaOriginal.step = "any";
     entropiaOriginal.min = "0";
 
     const entropiaDivision = crearInput("number");
+    entropiaDivision.id = "manual-gain-division";
     entropiaDivision.placeholder = "H(S|A)";
     entropiaDivision.step = "any";
     entropiaDivision.min = "0";
 
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    boton.id = "manual-gain-calculate";
     const resultado = document.createElement("div");
+    resultado.id = "manual-gain-result";
     resultado.classList.add("fw-semibold");
 
     boton.addEventListener("click", () => {
@@ -746,6 +833,7 @@ function crearCalculadoraSplitInfoManual() {
     ayuda.textContent = "Cada grupo es el número de filas que caen en una rama de la división. Por ejemplo: filas con valor <= umbral y filas con valor > umbral.";
 
     const grupos = document.createElement("div");
+    grupos.id = "manual-split-groups";
     grupos.classList.add("d-grid", "gap-2", "mb-3");
     grupos.appendChild(crearCampoGrupoSplitInfo(1, "Filas <= umbral"));
     grupos.appendChild(crearCampoGrupoSplitInfo(2, "Filas > umbral"));
@@ -755,7 +843,9 @@ function crearCalculadoraSplitInfoManual() {
 
     const botonAgregar = crearBoton("Añadir grupo", ["btn", "btn-outline-secondary"]);
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    boton.id = "manual-split-calculate";
     const resultado = document.createElement("div");
+    resultado.id = "manual-split-result";
     resultado.classList.add("fw-semibold");
 
     botonAgregar.addEventListener("click", () => {
@@ -826,17 +916,21 @@ function crearCalculadoraGainRatioManual() {
     fila.classList.add("d-flex", "flex-wrap", "align-items-center", "gap-2");
 
     const ganancia = crearInput("number");
+    ganancia.id = "manual-ratio-gain";
     ganancia.placeholder = "Gain";
     ganancia.step = "any";
     ganancia.min = "0";
 
     const splitInfo = crearInput("number");
+    splitInfo.id = "manual-ratio-split";
     splitInfo.placeholder = "Split Info";
     splitInfo.step = "any";
     splitInfo.min = "0";
 
     const boton = crearBoton("Calcular", ["btn", "btn-outline-secondary"]);
+    boton.id = "manual-ratio-calculate";
     const resultado = document.createElement("div");
+    resultado.id = "manual-ratio-result";
     resultado.classList.add("fw-semibold");
 
     boton.addEventListener("click", () => {
@@ -879,7 +973,7 @@ function crearVisualizadorNodoElegido() {
 
     const ayuda = document.createElement("p");
     ayuda.classList.add("small", "text-body-secondary", "mb-3");
-    ayuda.textContent = "El nodo se construye con el umbral que tenga mayor Gain Ratio. La rama Sí contiene los valores menores o iguales al umbral; la rama No contiene los valores mayores.";
+    ayuda.textContent = "El nodo se construye con el umbral que tenga mayor Gain Ratio. La rama No contiene los valores menores o iguales al umbral; la rama Sí contiene los valores mayores.";
 
     const preview = document.createElement("div");
     preview.id = "selectedNodePreview";
@@ -925,47 +1019,153 @@ function renderizarNodoElegido(nombreAtributo, filasOrdenadas, cambios) {
     }, cambios[0]);
 
     const umbral = mejorCambio.umbral;
-    const filasSi = filasOrdenadas.filter(fila => Number(fila[0]) <= umbral);
-    const filasNo = filasOrdenadas.filter(fila => Number(fila[0]) > umbral);
+    const filasNo = filasOrdenadas.filter(fila => Number(fila[0]) <= umbral);
+    const filasSi = filasOrdenadas.filter(fila => Number(fila[0]) > umbral);
+    const datosNodo = {
+        atributo: nombreAtributo,
+        umbral,
+        gananciaInformacion: calcularGananciaInformacionParaUmbral(filasOrdenadas, umbral),
+        splitInfo: calcularSplitInfoParaUmbral(filasOrdenadas, umbral),
+        gainRatio: calcularGainRatioParaUmbral(filasOrdenadas, umbral),
+        ramaNo: obtenerEstadoRamaNodo(filasNo),
+        ramaSi: obtenerEstadoRamaNodo(filasSi)
+    };
 
-    const nodo = document.createElement("div");
-    nodo.classList.add("chosen-node-box");
-    nodo.textContent = `${nombreAtributo} <= ${umbral.toFixed(1)} ?`;
-
-    const ramas = document.createElement("div");
-    ramas.classList.add("chosen-node-branches");
-
-    ramas.appendChild(crearRamaNodoElegido("Sí", "left", obtenerResultadoRamaNodo(filasSi)));
-    ramas.appendChild(crearRamaNodoElegido("No", "right", obtenerResultadoRamaNodo(filasNo)));
-
-    contenedor.appendChild(nodo);
-    contenedor.appendChild(ramas);
+    contenedor.appendChild(crearSvgNodoElegido(datosNodo));
 }
 
-function crearRamaNodoElegido(etiqueta, direccion, resultado) {
-    const rama = document.createElement("div");
-    rama.classList.add("chosen-node-branch", `chosen-node-branch-${direccion}`);
-
-    const flecha = document.createElement("div");
-    flecha.classList.add("chosen-node-arrow");
-
-    const textoFlecha = document.createElement("span");
-    textoFlecha.textContent = etiqueta;
-    flecha.appendChild(textoFlecha);
-
-    const hoja = document.createElement("div");
-    hoja.classList.add("chosen-node-leaf");
-    hoja.textContent = resultado;
-
-    rama.appendChild(flecha);
-    rama.appendChild(hoja);
-
-    return rama;
-}
-
-function obtenerResultadoRamaNodo(filas) {
+function obtenerEstadoRamaNodo(filas) {
     const clases = [...new Set(filas.map(fila => fila[1]))];
-    return clases.length === 1 ? clases[0] : "Calcular siguiente nodo";
+    return clases.length === 1 ? clases[0] : "Pendiente";
+}
+
+function crearSvgNodoElegido(datosNodo) {
+    const svg = crearElementoSvg("svg", {
+        class: "chosen-node-svg",
+        viewBox: "0 0 720 370",
+        role: "img",
+        "aria-label": "Vista previa del nodo elegido"
+    });
+
+    const defs = crearElementoSvg("defs");
+    const marker = crearElementoSvg("marker", {
+        id: "chosenNodeArrow",
+        markerWidth: "10",
+        markerHeight: "10",
+        refX: "8",
+        refY: "5",
+        orient: "auto",
+        markerUnits: "strokeWidth"
+    });
+    marker.appendChild(crearElementoSvg("path", {
+        d: "M 0 0 L 10 5 L 0 10 z",
+        fill: "#1f2933"
+    }));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    svg.appendChild(crearTarjetaNodoElegido(datosNodo));
+    svg.appendChild(crearLineaRamaNodo(360, 150, 165, 270));
+    svg.appendChild(crearLineaRamaNodo(360, 150, 555, 270));
+    svg.appendChild(crearEtiquetaRamaNodo("<= umbral", 245, 225));
+    svg.appendChild(crearEtiquetaRamaNodo("> umbral", 475, 225));
+    svg.appendChild(crearHojaNodoElegido(110, 270, datosNodo.ramaNo));
+    svg.appendChild(crearHojaNodoElegido(500, 270, datosNodo.ramaSi));
+
+    return svg;
+}
+
+function crearTarjetaNodoElegido(datosNodo) {
+    const grupo = crearElementoSvg("g", { class: "chosen-node-svg-card" });
+    const x = 220;
+    const y = 20;
+    const ancho = 280;
+
+    grupo.appendChild(crearElementoSvg("rect", {
+        x,
+        y,
+        width: ancho,
+        height: 130,
+        rx: "8",
+        class: "chosen-node-svg-shell"
+    }));
+    grupo.appendChild(crearElementoSvg("rect", {
+        x,
+        y,
+        width: ancho,
+        height: 32,
+        rx: "8",
+        class: "chosen-node-svg-header"
+    }));
+    grupo.appendChild(crearTextoSvg(`${datosNodo.atributo} <= ${formatearNumeroNodo(datosNodo.umbral)}`, x + ancho / 2, y + 22, ["chosen-node-svg-title"], "middle"));
+    grupo.appendChild(crearTextoSvg(`Ganancia de información = ${formatearNumeroNodo(datosNodo.gananciaInformacion)}`, x + 18, y + 62));
+    grupo.appendChild(crearTextoSvg(`Split info = ${formatearNumeroNodo(datosNodo.splitInfo)}`, x + 18, y + 90));
+    grupo.appendChild(crearTextoSvg(`Gain ratio = ${formatearNumeroNodo(datosNodo.gainRatio)}`, x + 18, y + 118));
+
+    return grupo;
+}
+
+function crearLineaRamaNodo(x1, y1, x2, y2) {
+    return crearElementoSvg("line", {
+        x1,
+        y1,
+        x2,
+        y2,
+        class: "chosen-node-svg-branch-line",
+        "marker-end": "url(#chosenNodeArrow)"
+    });
+}
+
+function crearEtiquetaRamaNodo(condicion, x, y) {
+    const grupo = crearElementoSvg("g", { class: "chosen-node-svg-branch-label" });
+    grupo.appendChild(crearElementoSvg("rect", {
+        x: x - 42,
+        y: y - 19,
+        width: 84,
+        height: 28,
+        rx: "6",
+        class: "chosen-node-svg-label-bg"
+    }));
+    grupo.appendChild(crearTextoSvg(condicion, x, y, ["chosen-node-svg-branch-condition"], "middle"));
+    return grupo;
+}
+
+function crearHojaNodoElegido(x, y, estado) {
+    const grupo = crearElementoSvg("g", { class: "chosen-node-svg-leaf" });
+    const claseEstado = estado === "Pendiente" ? "chosen-node-svg-leaf-pending" : "chosen-node-svg-leaf-defined";
+    grupo.appendChild(crearElementoSvg("rect", {
+        x,
+        y,
+        width: 110,
+        height: 58,
+        rx: "8",
+        class: `chosen-node-svg-leaf-box ${claseEstado}`
+    }));
+    grupo.appendChild(crearTextoSvg(estado, x + 55, y + 36, ["chosen-node-svg-leaf-text"], "middle"));
+    return grupo;
+}
+
+function crearTextoSvg(texto, x, y, clases = ["chosen-node-svg-text"], anchor = "start") {
+    const elemento = crearElementoSvg("text", {
+        x,
+        y,
+        class: clases.join(" "),
+        "text-anchor": anchor
+    });
+    elemento.textContent = texto;
+    return elemento;
+}
+
+function crearElementoSvg(nombre, atributos = {}) {
+    const elemento = document.createElementNS("http://www.w3.org/2000/svg", nombre);
+    Object.entries(atributos).forEach(([atributo, valor]) => {
+        elemento.setAttribute(atributo, valor);
+    });
+    return elemento;
+}
+
+function formatearNumeroNodo(valor) {
+    return Number.isFinite(valor) ? valor.toFixed(2) : "0.00";
 }
 
 function renderPasoPendiente(container, paso) {
@@ -1063,9 +1263,21 @@ function crearCabeceraTabla(cabecera) {
     return thead;
 }
 
+function crearCabeceraTablaInteractiva(cabecera) {
+    const thead = document.createElement("thead");
+    const tr = document.createElement("tr");
+
+    cabecera.forEach(nombreColumna => {
+        tr.appendChild(crearCabeceraInteractiva(nombreColumna));
+    });
+
+    thead.appendChild(tr);
+    return thead;
+}
+
 function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVacia = false) {
     const wrapper = document.createElement("div");
-    wrapper.classList.add("table-responsive");
+    wrapper.classList.add("table-responsive", "threshold-values-wrapper");
 
     const table = document.createElement("table");
     table.classList.add("table", "caption-top", "table-bordered", "align-middle", "text-center");
@@ -1075,7 +1287,7 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
     caption.textContent = "Valores calculados: paso 2";
     table.appendChild(caption);
 
-    table.appendChild(crearCabeceraTabla(nombresColumnas));
+    table.appendChild(crearCabeceraTablaInteractiva(nombresColumnas));
 
     const tbody = document.createElement("tbody");
 
@@ -1088,29 +1300,68 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
     } else {
         cambios.forEach(cambio => {
             const tr = document.createElement("tr");
+            const entropiaOriginal = calcularEntropiaDeGrupo(filasOrdenadas);
+            const entropiaUmbral = calcularEntropiaParaUmbral(filasOrdenadas, cambio.umbral);
+            const gananciaInformacion = calcularGananciaInformacionParaUmbral(filasOrdenadas, cambio.umbral);
+            const splitInfo = calcularSplitInfoParaUmbral(filasOrdenadas, cambio.umbral);
+            const gainRatio = calcularGainRatioParaUmbral(filasOrdenadas, cambio.umbral);
+            const totalIzquierda = filasOrdenadas.filter(fila => Number(fila[0]) <= cambio.umbral).length;
+            const totalDerecha = filasOrdenadas.length - totalIzquierda;
 
             const tdUmbral = crearCelda(`${cambio.valorAnterior} - ${cambio.valorSiguiente}`, ["fw-semibold", "umbral-highlight"]);
             const tdUmbralCalculado = crearCelda(cambio.umbral.toFixed(2), ["fw-semibold"]);
-            const entropiaUmbral = calcularEntropiaParaUmbral(filasOrdenadas, cambio.umbral);
             const tdEntropia = crearCelda(entropiaUmbral.toFixed(2), ["fw-semibold"]);
+
+            hacerCeldaInteractiva(
+                tdUmbral,
+                `Probar umbral con ${cambio.valorAnterior} y ${cambio.valorSiguiente}.`,
+                () => rellenarCalculadoraUmbralDesdeCelda(cambio.valorAnterior, cambio.valorSiguiente)
+            );
+            hacerCeldaInteractiva(
+                tdUmbralCalculado,
+                `Umbral = (${cambio.valorAnterior} + ${cambio.valorSiguiente}) / 2 = ${cambio.umbral.toFixed(2)}.`,
+                () => rellenarCalculadoraUmbralDesdeCelda(cambio.valorAnterior, cambio.valorSiguiente)
+            );
+            hacerCeldaInteractiva(
+                tdEntropia,
+                `Abrir Entropía. En esta fila H(S|A) = ${entropiaUmbral.toFixed(2)} para el umbral ${cambio.umbral.toFixed(2)}.`,
+                () => {
+                    window.location.href = "../entropia/index.html";
+                }
+            );
 
             tr.appendChild(tdUmbral);
             tr.appendChild(tdUmbralCalculado);
             tr.appendChild(tdEntropia);
 
             if (nombresColumnas.includes("Ganancia de información")) {
-                const gananciaInformacion = calcularGananciaInformacionParaUmbral(filasOrdenadas, cambio.umbral);
-                tr.appendChild(crearCelda(gananciaInformacion.toFixed(2), ["fw-semibold"]));
+                const tdGanancia = crearCelda(gananciaInformacion.toFixed(2), ["fw-semibold"]);
+                hacerCeldaInteractiva(
+                    tdGanancia,
+                    `Gain = H(S) - H(S|A) = ${entropiaOriginal.toFixed(2)} - ${entropiaUmbral.toFixed(2)} = ${gananciaInformacion.toFixed(2)}.`,
+                    () => rellenarCalculadoraGananciaDesdeCelda(entropiaOriginal, entropiaUmbral)
+                );
+                tr.appendChild(tdGanancia);
             }
 
             if (nombresColumnas.includes("Split Info")) {
-                const splitInfo = calcularSplitInfoParaUmbral(filasOrdenadas, cambio.umbral);
-                tr.appendChild(crearCelda(splitInfo.toFixed(2), ["fw-semibold"]));
+                const tdSplitInfo = crearCelda(splitInfo.toFixed(2), ["fw-semibold"]);
+                hacerCeldaInteractiva(
+                    tdSplitInfo,
+                    `Split Info calculado con ${totalIzquierda} filas <= umbral y ${totalDerecha} filas > umbral.`,
+                    () => rellenarCalculadoraSplitDesdeCelda(totalIzquierda, totalDerecha)
+                );
+                tr.appendChild(tdSplitInfo);
             }
 
             if (nombresColumnas.includes("Gain Ratio")) {
-                const gainRatio = calcularGainRatioParaUmbral(filasOrdenadas, cambio.umbral);
-                tr.appendChild(crearCelda(gainRatio.toFixed(2), ["fw-semibold"]));
+                const tdGainRatio = crearCelda(gainRatio.toFixed(2), ["fw-semibold"]);
+                hacerCeldaInteractiva(
+                    tdGainRatio,
+                    `Gain Ratio = Gain / Split Info = ${gananciaInformacion.toFixed(2)} / ${splitInfo.toFixed(2)} = ${gainRatio.toFixed(2)}.`,
+                    () => rellenarCalculadoraGainRatioDesdeCelda(gananciaInformacion, splitInfo)
+                );
+                tr.appendChild(tdGainRatio);
             }
 
             tbody.appendChild(tr);
@@ -1120,6 +1371,82 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
     table.appendChild(tbody);
     wrapper.appendChild(table);
     return wrapper;
+}
+
+function navegarAPasoConResultados(stepIndex) {
+    goToSpecificStep(stepIndex);
+    renderizarResultadosDesdeDatosGuardados();
+}
+
+function renderizarResultadosDesdeDatosGuardados() {
+    if (!datosTablaOriginal) return;
+
+    try {
+        const resultado = obtenerDatosOrdenadosPorAtributo(datosTablaOriginal, datosTablaOriginal[0][0], datosTablaOriginal[0][1]);
+        const cambios = obtenerCambiosDeClase(resultado.filas);
+        renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado);
+
+        if (currentStep === 4) {
+            renderizarNodoElegido(resultado.cabecera[0], resultado.filas, cambios);
+        }
+
+        actualizarLayoutResultados(true);
+    } catch (error) {
+        const contenedorResultados = document.getElementById("stepExtraContainer");
+        if (contenedorResultados) {
+            contenedorResultados.appendChild(crearAlertaError(error.message));
+        }
+    }
+}
+
+function rellenarCalculadoraUmbralDesdeCelda(valorAnterior, valorSiguiente) {
+    navegarAPasoConResultados(0);
+    asignarValorInput("manual-threshold-value-1", valorAnterior);
+    asignarValorInput("manual-threshold-value-2", valorSiguiente);
+    calcularPanelManual("manual-threshold-calculate");
+}
+
+function rellenarCalculadoraGananciaDesdeCelda(entropiaOriginal, entropiaUmbral) {
+    navegarAPasoConResultados(1);
+    asignarValorInput("manual-gain-original", entropiaOriginal);
+    asignarValorInput("manual-gain-division", entropiaUmbral);
+    calcularPanelManual("manual-gain-calculate");
+}
+
+function rellenarCalculadoraSplitDesdeCelda(totalIzquierda, totalDerecha) {
+    navegarAPasoConResultados(2);
+
+    const grupos = document.getElementById("manual-split-groups");
+    const inputs = grupos ? Array.from(grupos.querySelectorAll("input")) : [];
+    if (inputs[0]) inputs[0].value = totalIzquierda;
+    if (inputs[1]) inputs[1].value = totalDerecha;
+    inputs.slice(2).forEach(input => {
+        input.value = "";
+    });
+
+    calcularPanelManual("manual-split-calculate");
+}
+
+function rellenarCalculadoraGainRatioDesdeCelda(gananciaInformacion, splitInfo) {
+    navegarAPasoConResultados(3);
+    asignarValorInput("manual-ratio-gain", gananciaInformacion);
+    asignarValorInput("manual-ratio-split", splitInfo);
+    calcularPanelManual("manual-ratio-calculate");
+}
+
+function asignarValorInput(id, valor) {
+    const input = document.getElementById(id);
+    if (input) {
+        input.value = Number.isFinite(Number(valor)) ? Number(valor).toFixed(2) : valor;
+    }
+}
+
+function calcularPanelManual(idBoton) {
+    const boton = document.getElementById(idBoton);
+    if (boton) {
+        boton.click();
+        boton.closest(".border")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 }
 
 function obtenerDatosOrdenadosPorAtributo(datos, atributo, claseObjetivo) {
