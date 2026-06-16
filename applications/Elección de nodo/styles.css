@@ -338,11 +338,21 @@ footer {
     border-radius: 6px;
 }
 
+.chosen-node-visualization {
+    display: grid;
+    gap: 1rem;
+    justify-items: center;
+}
+
 .chosen-node-preview {
     display: flex;
     justify-content: center;
     width: 100%;
     overflow-x: auto;
+}
+
+.chosen-node-mini-legend {
+    width: min(100%, 44rem);
 }
 
 .chosen-node-svg {
@@ -417,6 +427,11 @@ footer {
 
 .chosen-node-svg-leaf-defined {
     fill: #ffdd77;
+}
+
+.chosen-node-mini-leaf-swatch {
+    background-color: #ffdd77;
+    border-color: #c99a2e;
 }
 
 .chosen-node-svg-leaf-pending {

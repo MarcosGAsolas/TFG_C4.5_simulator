@@ -113,8 +113,6 @@ function mostrarPaso() {
         paso.render(tableContainer, paso);
     }
 
-    renderizarLeyendaPasoActual();
-
     renderizarMathJax();
 }
 
@@ -567,7 +565,7 @@ function calcularUmbralesDeTabla() {
         const resultado = obtenerDatosOrdenadosPorAtributo(datosTablaOriginal, datosTablaOriginal[0][0], datosTablaOriginal[0][1]);
         const cambios = obtenerCambiosDeClase(resultado.filas);
 
-        renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado);
+        renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado, false, true);
         if (currentStep === 4) {
             renderizarNodoElegido(resultado.cabecera[0], resultado.filas, cambios);
         }
@@ -586,23 +584,27 @@ function limpiarErrorCalculoPrincipal() {
     }
 }
 
-function renderizarTablasResultadoUmbral(cabecera, filas, cambios, nombresColumnas, mostrarVacias = false) {
+function renderizarTablasResultadoUmbral(cabecera, filas, cambios, nombresColumnas, mostrarVacias = false, mostrarLeyenda = false) {
     const contenedorResultados = document.getElementById("stepExtraContainer");
     if (!contenedorResultados) return;
 
     limpiarElemento(contenedorResultados);
     contenedorResultados.appendChild(crearTablaOrdenada(cabecera, filas, cambios, mostrarVacias));
     contenedorResultados.appendChild(crearTablaUmbrales(cambios, filas, nombresColumnas, mostrarVacias));
+    if (mostrarLeyenda) {
+        renderizarLeyendaPasoActual(contenedorResultados);
+    }
 }
 
-function renderizarLeyendaPasoActual() {
-    const contenedorLeyenda = document.getElementById("legendContainer");
+function renderizarLeyendaPasoActual(contenedorLeyenda = document.getElementById("legendContainer")) {
     if (!contenedorLeyenda) return;
 
     const datosLeyenda = obtenerDatosLeyenda(currentStep);
     if (!datosLeyenda) return;
 
-    mostrarFilaLeyenda(true);
+    if (contenedorLeyenda.id === "legendContainer") {
+        mostrarFilaLeyenda(true);
+    }
     contenedorLeyenda.appendChild(crearLeyenda(datosLeyenda));
 }
 
@@ -626,20 +628,6 @@ function obtenerDatosLeyenda(stepIndex) {
             texto: "Los datos se ordenan por valor como primer paso para identificar correctamente los umbrales."
         }
     ];
-    const itemsLeyendaNodo = [
-        ...itemsLeyendaUmbral,
-        {
-            tipo: "swatch",
-            titulo: "Hoja definitiva",
-            texto: "En la visualización del nodo elegido, una hoja amarilla indica que esa rama ya es definitiva. Esto significa que todos los valores de la columna de clase de esa rama coinciden con el valor mostrado dentro de la hoja."
-        },
-        {
-            icono: "bi-signpost-split",
-            titulo: "Condición de la rama",
-            texto: "Las etiquetas <= umbral y > umbral indican qué valores siguen cada camino: una rama agrupa los valores menores o iguales al umbral y la otra agrupa los valores superiores al umbral."
-        }
-    ];
-
     const leyendas = [
         {
             id: "legendUmbralBody",
@@ -659,7 +647,7 @@ function obtenerDatosLeyenda(stepIndex) {
         },
         {
             id: "legendNodeBody",
-            items: itemsLeyendaNodo
+            items: itemsLeyendaUmbral
         }
     ];
 
@@ -979,9 +967,14 @@ function crearVisualizadorNodoElegido() {
     preview.id = "selectedNodePreview";
     preview.classList.add("chosen-node-preview");
 
+    const visualizacion = document.createElement("div");
+    visualizacion.classList.add("chosen-node-visualization");
+    visualizacion.appendChild(preview);
+    visualizacion.appendChild(crearMiniLeyendaNodoElegido());
+
     bloque.appendChild(titulo);
     bloque.appendChild(ayuda);
-    bloque.appendChild(preview);
+    bloque.appendChild(visualizacion);
 
     limpiarNodoElegido(preview);
 
@@ -992,6 +985,8 @@ function limpiarNodoElegido(contenedor = document.getElementById("selectedNodePr
     if (!contenedor) return;
 
     limpiarElemento(contenedor);
+    mostrarMiniLeyendaNodoElegido(false);
+
     const mensaje = document.createElement("p");
     mensaje.classList.add("text-body-secondary", "mb-0");
     mensaje.textContent = "Genera datos y pulsa Elegir nodo para ver el resultado.";
@@ -1003,6 +998,7 @@ function renderizarNodoElegido(nombreAtributo, filasOrdenadas, cambios) {
     if (!contenedor) return;
 
     limpiarElemento(contenedor);
+    mostrarMiniLeyendaNodoElegido(false);
 
     if (cambios.length === 0) {
         const mensaje = document.createElement("p");
@@ -1032,6 +1028,72 @@ function renderizarNodoElegido(nombreAtributo, filasOrdenadas, cambios) {
     };
 
     contenedor.appendChild(crearSvgNodoElegido(datosNodo));
+    mostrarMiniLeyendaNodoElegido(true);
+}
+
+function crearMiniLeyendaNodoElegido() {
+    const leyenda = crearCardDesplegable();
+    leyenda.id = "chosenNodeMiniLegend";
+    leyenda.classList.add("chosen-node-mini-legend", "d-none");
+    leyenda.setAttribute("aria-label", "Leyenda del nodo elegido");
+
+    const items = [
+        {
+            tipo: "swatch",
+            claseMarcador: "chosen-node-mini-leaf-swatch",
+            titulo: "Hoja definitiva",
+            texto: "La rama ya tiene una clase final porque todos sus datos coinciden."
+        },
+        {
+            icono: "bi-signpost-split",
+            titulo: "Condición de la rama",
+            texto: "Las etiquetas <= umbral y > umbral indican qué valores siguen cada camino."
+        }
+    ];
+
+    const header = document.createElement("div");
+    header.classList.add("card-header", "fs-6");
+
+    const link = document.createElement("a");
+    link.classList.add(
+        "collapsed",
+        "d-block",
+        "link-body-emphasis",
+        "link-offset-2",
+        "link-offset-2-hover",
+        "link-underline",
+        "link-underline-opacity-0",
+        "link-underline-opacity-50-hover"
+    );
+    link.setAttribute("data-bs-toggle", "collapse");
+    link.setAttribute("href", "#chosenNodeMiniLegendBody");
+    link.setAttribute("aria-expanded", "false");
+    link.setAttribute("aria-controls", "chosenNodeMiniLegendBody");
+    link.textContent = "Leyenda del dibujo";
+    header.appendChild(link);
+
+    const collapse = document.createElement("div");
+    collapse.classList.add("collapse");
+    collapse.id = "chosenNodeMiniLegendBody";
+
+    const body = document.createElement("div");
+    body.classList.add("card-body", "threshold-legend-body");
+    items.forEach(item => {
+        body.appendChild(crearItemLeyenda(item));
+    });
+
+    collapse.appendChild(body);
+    leyenda.appendChild(header);
+    leyenda.appendChild(collapse);
+
+    return leyenda;
+}
+
+function mostrarMiniLeyendaNodoElegido(mostrar) {
+    const leyenda = document.getElementById("chosenNodeMiniLegend");
+    if (leyenda) {
+        leyenda.classList.toggle("d-none", !mostrar);
+    }
 }
 
 function obtenerEstadoRamaNodo(filas) {
@@ -1214,7 +1276,7 @@ function crearTablaOrdenada(cabecera, filas, cambios, mostrarVacia = false) {
 
     const caption = document.createElement("caption");
     caption.classList.add("threshold-results-caption");
-    caption.textContent = "Tabla ordenada: paso 1";
+    caption.textContent = "Tabla ordenada";
     table.appendChild(caption);
 
     table.appendChild(crearCabeceraTabla(cabecera));
@@ -1284,7 +1346,7 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
 
     const caption = document.createElement("caption");
     caption.classList.add("threshold-results-caption");
-    caption.textContent = "Valores calculados: paso 2";
+    caption.textContent = "Valores calculados";
     table.appendChild(caption);
 
     table.appendChild(crearCabeceraTablaInteractiva(nombresColumnas));
@@ -1373,18 +1435,18 @@ function crearTablaUmbrales(cambios, filasOrdenadas, nombresColumnas, mostrarVac
     return wrapper;
 }
 
-function navegarAPasoConResultados(stepIndex) {
+function navegarAPasoConResultados(stepIndex, mostrarLeyenda = false) {
     goToSpecificStep(stepIndex);
-    renderizarResultadosDesdeDatosGuardados();
+    renderizarResultadosDesdeDatosGuardados(mostrarLeyenda);
 }
 
-function renderizarResultadosDesdeDatosGuardados() {
+function renderizarResultadosDesdeDatosGuardados(mostrarLeyenda = false) {
     if (!datosTablaOriginal) return;
 
     try {
         const resultado = obtenerDatosOrdenadosPorAtributo(datosTablaOriginal, datosTablaOriginal[0][0], datosTablaOriginal[0][1]);
         const cambios = obtenerCambiosDeClase(resultado.filas);
-        renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado);
+        renderizarTablasResultadoUmbral(resultado.cabecera, resultado.filas, cambios, pasos[currentStep].columnasResultado, false, mostrarLeyenda);
 
         if (currentStep === 4) {
             renderizarNodoElegido(resultado.cabecera[0], resultado.filas, cambios);
@@ -1400,21 +1462,21 @@ function renderizarResultadosDesdeDatosGuardados() {
 }
 
 function rellenarCalculadoraUmbralDesdeCelda(valorAnterior, valorSiguiente) {
-    navegarAPasoConResultados(0);
+    navegarAPasoConResultados(0, true);
     asignarValorInput("manual-threshold-value-1", valorAnterior);
     asignarValorInput("manual-threshold-value-2", valorSiguiente);
     calcularPanelManual("manual-threshold-calculate");
 }
 
 function rellenarCalculadoraGananciaDesdeCelda(entropiaOriginal, entropiaUmbral) {
-    navegarAPasoConResultados(1);
+    navegarAPasoConResultados(1, true);
     asignarValorInput("manual-gain-original", entropiaOriginal);
     asignarValorInput("manual-gain-division", entropiaUmbral);
     calcularPanelManual("manual-gain-calculate");
 }
 
 function rellenarCalculadoraSplitDesdeCelda(totalIzquierda, totalDerecha) {
-    navegarAPasoConResultados(2);
+    navegarAPasoConResultados(2, true);
 
     const grupos = document.getElementById("manual-split-groups");
     const inputs = grupos ? Array.from(grupos.querySelectorAll("input")) : [];
@@ -1428,7 +1490,7 @@ function rellenarCalculadoraSplitDesdeCelda(totalIzquierda, totalDerecha) {
 }
 
 function rellenarCalculadoraGainRatioDesdeCelda(gananciaInformacion, splitInfo) {
-    navegarAPasoConResultados(3);
+    navegarAPasoConResultados(3, true);
     asignarValorInput("manual-ratio-gain", gananciaInformacion);
     asignarValorInput("manual-ratio-split", splitInfo);
     calcularPanelManual("manual-ratio-calculate");
@@ -1704,7 +1766,7 @@ function crearItemLeyenda(item) {
 
     const marcador = document.createElement("span");
     if (item.tipo === "swatch") {
-        marcador.classList.add("threshold-legend-swatch", "umbral-highlight");
+        marcador.classList.add("threshold-legend-swatch", item.claseMarcador || "umbral-highlight");
     } else {
         marcador.classList.add("threshold-legend-icon", "bi", item.icono);
     }
