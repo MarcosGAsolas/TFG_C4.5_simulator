@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <script src="../lib/jquery-3.7.1.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Árbol de decisión C4.5</title>
+</head>
+
+<body>
+    <header class="py-3 mb-4 border-bottom bg-body-secondary bg-opacity-75">
+        <div class="d-flex align-items-center gap-2 px-2">
+            <a href="https://www.ubu.es" class="d-flex align-items-center me-2">
+                <img src="../img/ubulogocolorfull.png" width="100" height="50" alt="Universidad de Burgos">
+            </a>
+            <a href="../index.html" class="fw-bold fs-5 ms-2 me-2 nav-link link-dark">Simulador árbol de decisión (Algoritmo C4.5)</a>
+            <div class="d-flex flex-row align-items-center gap-2 ms-auto">
+                <a href="../index.html" class="step-btn text-decoration-none">Menú</a>
+                <a href="../entropia/index.html" class="step-btn text-decoration-none">Entropía</a>
+                <a href="../Elección de nodo/index.html" class="step-btn text-decoration-none">Elección de nodo</a>
+                <span class="step-btn active-step">Árbol de decisión C4.5</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container pb-2">
+        <div class="row justify-content-center gy-3 pt-2 pb-3">
+            <div class="col-12 text-center">
+                <h2 class="h4">Árbol de decisión C4.5</h2>
+            </div>
+        </div>
+
+        <div class="row-auto p-2 pb-4 tree-info-row">
+            <div class="card bg-light mx-auto tree-info-card">
+                <div class="card-header fs-6" id="generalInfoTree">
+                    <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
+                        data-bs-toggle="collapse" href="#generalInfoTreeBody" aria-expanded="false"
+                        aria-controls="generalInfoTreeBody">
+                        Información general
+                    </a>
+                </div>
+                <div class="collapse" id="generalInfoTreeBody" aria-labelledby="generalInfoTree">
+                    <div class="card-body">
+                        <p class="card-text fw-light">
+                            El algoritmo C4.5 construye el árbol de decisión de forma recursiva. Para ello,
+                            parte de un conjunto de datos inicial \(S\) y de un conjunto de atributos \(A\).
+                        </p>
+                        <p class="card-text fw-light">
+                            En cada iteración, el algoritmo evalúa cada atributo disponible y calcula las
+                            medidas explicadas anteriormente: entropía, ganancia de información,
+                            Split Info y Gain Ratio.
+                        </p>
+                        <p class="card-text fw-light">
+                            El atributo seleccionado como nodo será aquel que obtenga el mayor valor de
+                            Gain Ratio, ya que esta medida permite elegir la variable que mejor divide el
+                            conjunto de datos penalizando, al mismo tiempo, las divisiones excesivamente
+                            ramificadas.
+                        </p>
+                        <p class="card-text fw-light">
+                            En el caso de los atributos continuos, C4.5 no divide directamente por cada
+                            valor diferente del atributo, sino que busca posibles umbrales de división. Cada
+                            umbral separa el dataset en dos subconjuntos:
+                        </p>
+                        <ul class="card-text fw-light">
+                            <li>ejemplos cuyo valor es menor o igual que el umbral</li>
+                            <li>ejemplos cuyo valor es mayor que el umbral</li>
+                        </ul>
+                        <p class="card-text fw-light">
+                            Para cada posible umbral se calcula el Gain Ratio y se selecciona aquel que
+                            produzca la mejor división.
+                        </p>
+                        <p class="card-text fw-light">
+                            El proceso continúa de forma recursiva sobre cada subconjunto generado,
+                            creando nuevos nodos y ramas hasta que se cumple alguna condición de parada:
+                        </p>
+                        <ul class="card-text fw-light">
+                            <li>todos los ejemplos de un subconjunto pertenecen a la misma clase</li>
+                            <li>no quedan atributos disponibles para dividir</li>
+                            <li>no existe una división que mejore la clasificación de los datos</li>
+                        </ul>
+                        <p class="card-text fw-light mb-0">
+                            En estos casos, el algoritmo crea un nodo hoja, asignando normalmente la clase
+                            mayoritaria del subconjunto.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card-header fs-6" id="algorithmTree">
+                    <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
+                        data-bs-toggle="collapse" href="#algorithmTreeBody" aria-expanded="false"
+                        aria-controls="algorithmTreeBody">
+                        Algoritmo C4.5
+                    </a>
+                </div>
+                <div class="collapse" id="algorithmTreeBody" aria-labelledby="algorithmTree">
+                    <div class="card-body">
+                        <p class="card-text fw-bold">Entrada:</p>
+                        <ul class="card-text fw-light">
+                            <li>Dataset \(S\)</li>
+                            <li>Conjunto de atributos \(A\)</li>
+                        </ul>
+
+                        <p class="card-text fw-bold">Salida:</p>
+                        <ul class="card-text fw-light">
+                            <li>Árbol de decisión \(T\)</li>
+                        </ul>
+
+                        <p class="card-text fw-bold">Algoritmo:</p>
+                        <ol>
+                            <li class="card-text fw-light">
+                                Ejecutar \(\operatorname{C4.5}(S, A)\), donde \(S\) representa el nodo actual del árbol \(T\).
+                            </li>
+                            <li class="card-text fw-light">
+                                Comprobar si \(S = \varnothing\):
+                                <ul>
+                                    <li>Si se cumple, crear una hoja con la clase mayoritaria del nodo anterior y devolverla como \(T\).</li>
+                                </ul>
+                            </li>
+                            <li class="card-text fw-light">
+                                Comprobar si todos los ejemplos de \(S\) pertenecen a la misma clase \(c\):
+                                <ul>
+                                    <li>Si se cumple, crear una hoja con la etiqueta \(c\) y devolverla como \(T\).</li>
+                                </ul>
+                            </li>
+                            <li class="card-text fw-light">
+                                Comprobar si el conjunto de atributos \(A\) está vacío:
+                                <ul>
+                                    <li>Si se cumple, crear una hoja con la clase mayoritaria de \(S\) y devolverla como \(T\).</li>
+                                </ul>
+                            </li>
+                            <li class="card-text fw-light">
+                                Para cada atributo \(a \in A\), calcular sus posibles particiones:
+                                <ul>
+                                    <li>Si \(a\) es continuo, generar umbrales \(u\) y dividir \(S\) en \(S_{\leq u}\) y \(S_{>u}\).</li>
+                                    <li>Si \(a\) es categórico, dividir \(S\) según los valores de \(a\).</li>
+                                </ul>
+                            </li>
+                            <li class="card-text fw-light">
+                                Para cada partición, calcular \(\operatorname{Gain}(S,a)\), \(\operatorname{SplitInfo}(S,a)\) y \(\operatorname{GainRatio}(S,a)\).
+                            </li>
+                            <li class="card-text fw-light">
+                                Seleccionar \(a_{\text{mejor}}\) como el atributo con mayor \(\operatorname{GainRatio}\). Si el atributo es continuo, conservar también el mejor umbral \(u_{\text{mejor}}\).
+                            </li>
+                            <li class="card-text fw-light">
+                                Crear un nodo de decisión con \(a_{\text{mejor}}\).
+                            </li>
+                            <li class="card-text fw-light">
+                                Si \(a_{\text{mejor}}\) es continuo, crear dos ramas:
+                                <ul>
+                                    <li><span class="fw-bold">Rama izquierda:</span> \(\operatorname{C4.5}(S_{\leq u_{\text{mejor}}}, A)\)</li>
+                                    <li><span class="fw-bold">Rama derecha:</span> \(\operatorname{C4.5}(S_{>u_{\text{mejor}}}, A)\)</li>
+                                </ul>
+                            </li>
+                            <li class="card-text fw-light">
+                                Si \(a_{\text{mejor}}\) es categórico, para cada valor \(v \in \operatorname{Values}(a_{\text{mejor}})\), crear \(S_v\):
+                                <ul>
+                                    <li>Si \(S_v = \varnothing\), añadir una hoja con la clase mayoritaria de \(S\).</li>
+                                    <li>Si \(S_v \neq \varnothing\), añadir como rama \(\operatorname{C4.5}(S_v, A - \{a_{\text{mejor}}\})\).</li>
+                                </ul>
+                            </li>
+                            <li class="card-text fw-light">
+                                Aplicar poda posterior al árbol generado y devolver el nodo de decisión.
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row p-2 justify-content-center align-items-center g-2 tree-dataset-actions">
+            <div class="col-auto">
+                <select id="selectExampleDataset" class="form-select border-primary-subtle" data-live-search="true">
+                    <option selected disabled>Seleccionar dataset de ejemplo</option>
+                    <option>Leads inmobiliaria</option>
+                    <option>Mantenimiento</option>
+                    <option>Conversion web</option>
+                    <option>Prestamos</option>
+                    <option>Estudiantes</option>
+                </select>
+            </div>
+
+            <div class="col-auto">
+                <button type="button" class="btn border-success-subtle" data-bs-toggle="modal"
+                    data-bs-target="#uploadCsvModal">
+                    Subir CSV
+                </button>
+            </div>
+
+            <div class="col-auto">
+                <button class="btn btn-outline-dark" id="clearDatasetButton" type="button" disabled>
+                    <i class="bi bi-x-circle" aria-hidden="true"></i>
+                    <span>Limpiar</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="dataInfoContainer" class="container pb-4 d-none">
+            <div class="row justify-content-center">
+                <div class="col-auto">
+                    <div id="datasetCard" class="card">
+                        <div class="card-header text-center">
+                            <span>Dataset utilizado actualmente:</span>
+                            <span id="currentDatasetSpan" class="fw-bold"></span>
+                        </div>
+                        <div id="datasetCardBody" class="card-body text-center">
+                            <p id="datasetCardText" class="card-text fw-light"></p>
+                            <a id="datasetCardLink" href="#" class="btn btn-outline-secondary" target="_blank"
+                                rel="noopener noreferrer">Ver fuente</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="uploadCsvModal" tabindex="-1" aria-labelledby="uploadCsvModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title fw-semibold fs-5" id="uploadCsvModalLabel">Subir dataset CSV</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="card bg-light mb-3">
+                            <div class="card-header bg-danger-subtle" id="fileReqHeader">
+                                <a class="collapsed text-center fw-bold fs-5 d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
+                                    data-bs-toggle="collapse" href="#collapseFileReq" aria-expanded="false"
+                                    aria-controls="collapseFileReq">
+                                    Requisitos del archivo
+                                </a>
+                            </div>
+                            <div id="collapseFileReq" class="collapse" aria-labelledby="fileReqHeader">
+                                <div class="card-body">
+                                    <ol class="mb-0">
+                                        <li><strong>Formato:</strong> archivo CSV separado por comas.</li>
+                                        <li><strong>Cabecera:</strong> la primera fila debe contener los atributos.</li>
+                                        <li><strong>Columnas:</strong> el dataset no puede tener más de 10 columnas.</li>
+                                        <li><strong>Cabecera completa:</strong> la cabecera no puede contener columnas vacías.</li>
+                                        <li><strong>Filas:</strong> todas las filas deben tener el mismo número de columnas.</li>
+                                        <li><strong>Valores:</strong> no puede haber valores vacíos.</li>
+                                        <li><strong>Formato de columnas:</strong> cada columna debe tener todos los datos del mismo formato.</li>
+                                        <li><strong>Formatos permitidos:</strong> los datos pueden ser numéricos, booleanos o categóricos.</li>
+                                        <li><strong>Clase:</strong> la última columna debe ser categórica binaria.</li>
+                                        <li><strong>Valores de clase:</strong> la última columna debe contener únicamente los valores Si y No.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <label class="form-label fw-semibold" for="csvFileInput">Seleccionar archivo</label>
+                        <input class="form-control" id="csvFileInput" type="file" accept=".csv,text/csv">
+                        <div id="uploadValidationStatus" class="mt-3 d-none"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center gy-3 pb-4 tree-layout-row">
+            <section class="col-12">
+                <div class="table-responsive tree-table-wrapper" id="datasetPreview">
+                    <p class="text-body-secondary text-center mb-0">Todavia no hay datos cargados.</p>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <footer class="py-3 mt-2 border-top bg-dark text-white">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center">
+            <div class="col-md-4 col-auto d-flex align-items-center">
+                <ul class="flex-column">
+                    <span class="fw-bold">Autores:</span>
+                    <li class="mb-2 mt-2" style="list-style-type: none;">
+                        <span>Marcos Guzmán Asolas</span>
+                    </li>
+                    <li class="mb-2" style="list-style-type: none;">
+                        <span>Carlos López Nozal</span>
+                    </li>
+                    <li class="mb-2" style="list-style-type: none;">
+                        <span>Gadea Lucas Perez</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-3 col-auto d-flex align-items-center">
+                <span class="date fw-light"></span>
+                <script>
+                    fetch("https://api.github.com/repos/MarcosGAsolas/TFG_C4.5_simulator")
+                        .then(res => res.json())
+                        .then(repo => {
+                            let d = new Date(repo.updated_at);
+                            document.querySelector(".date").textContent =
+                                `Última actualización: ${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+                        });
+                </script>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="js/datasetHandler.js"></script>
+</body>
+
+</html>

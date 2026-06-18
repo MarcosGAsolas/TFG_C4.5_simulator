@@ -1,0 +1,5 @@
+Edad,Ingresos,Activo,Categoria,Metrica,Booleano_Mezclado,Numero_Mezclado,Categoria_Mezclada,Campo_Vacio,,Extra1,Resultado
+25,1200,True,A,3.5,True,10,Rojo,Valor,CabeceraVacia,X,Aprobado
+Texto,1300,False,B,4.1,False,Once,20,Valor,CabeceraVacia,Y,Rechazado
+30,Texto,True,C,5.0,Si,12,Azul,,CabeceraVacia,Z,Talvez
+35,1500,False,D,6.2,False,13,Verde,Valor,CabeceraVacia
