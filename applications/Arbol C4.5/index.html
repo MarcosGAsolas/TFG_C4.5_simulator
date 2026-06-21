@@ -245,14 +245,15 @@
                                     <ol class="mb-0">
                                         <li><strong>Formato:</strong> archivo CSV separado por comas.</li>
                                         <li><strong>Cabecera:</strong> la primera fila debe contener los atributos.</li>
-                                        <li><strong>Columnas:</strong> el dataset no puede tener más de 10 columnas.</li>
+                                        <li><strong>Filas:</strong> el dataset no puede tener más de 150 filas de datos.</li>
+                                        <li><strong>Columnas:</strong> el dataset no puede tener más de 25 columnas.</li>
                                         <li><strong>Cabecera completa:</strong> la cabecera no puede contener columnas vacías.</li>
                                         <li><strong>Filas:</strong> todas las filas deben tener el mismo número de columnas.</li>
                                         <li><strong>Valores:</strong> no puede haber valores vacíos.</li>
                                         <li><strong>Formato de columnas:</strong> cada columna debe tener todos los datos del mismo formato.</li>
                                         <li><strong>Formatos permitidos:</strong> los datos pueden ser numéricos, booleanos o categóricos.</li>
-                                        <li><strong>Clase:</strong> la última columna debe ser categórica binaria.</li>
-                                        <li><strong>Valores de clase:</strong> la última columna debe contener únicamente los valores Si y No.</li>
+                                        <li><strong>Clase:</strong> la última columna debe ser la clase objetivo.</li>
+                                        <li><strong>Valores de clase:</strong> la última columna debe contener exactamente dos valores distintos.</li>
                                     </ol>
                                 </div>
                             </div>
@@ -266,10 +267,49 @@
             </div>
         </div>
 
-        <div class="row justify-content-center gy-3 pb-4 tree-layout-row">
-            <section class="col-12">
-                <div class="table-responsive tree-table-wrapper" id="datasetPreview">
-                    <p class="text-body-secondary text-center mb-0">Todavia no hay datos cargados.</p>
+        <div class="row justify-content-center gy-3 pt-1 pb-3 tree-step-controls d-none" id="treeStepControls">
+            <div id="treeStepButtons" class="col-12 d-flex flex-wrap justify-content-center gap-4 mb-2" aria-label="Controles de pasos del árbol"></div>
+
+            <div class="col-12 text-center">
+                <h2 id="treeStepTitle" class="h4"></h2>
+            </div>
+        </div>
+
+        <div id="simulatorWorkspace" class="simulator-workspace">
+            <section id="treePanel" class="workspace-panel tree-panel">
+                <header class="panel-header">
+                    <span class="panel-title">Árbol</span>
+                    <button type="button" class="panel-toggle" data-toggle-panel="tree"
+                        aria-label="Minimizar árbol de decisión" aria-expanded="true">▸</button>
+                </header>
+                <div class="panel-content">
+                    <div id="treeSvgContainer" class="svg-container"></div>
+                </div>
+            </section>
+
+            <section id="datasetPanel" class="workspace-panel dataset-panel">
+                <header class="panel-header">
+                    <span class="panel-title">Dataset</span>
+                    <button type="button" class="panel-toggle" data-toggle-panel="dataset"
+                        aria-label="Minimizar tabla del dataset" aria-expanded="true">▸</button>
+                </header>
+                <div class="panel-content">
+                    <div id="dataTable" class="table-wrapper">
+                        <p class="text-body-secondary text-center mb-0">Todavia no hay datos cargados.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="calculationPanel" class="workspace-panel calculation-panel">
+                <header class="panel-header">
+                    <span class="panel-title">Cálculos</span>
+                    <button type="button" class="panel-toggle" data-toggle-panel="calculations"
+                        aria-label="Minimizar tabla de cálculos" aria-expanded="true">▸</button>
+                </header>
+                <div class="panel-content">
+                    <div id="valueTable" class="table-wrapper">
+                        <p class="text-body-secondary text-center mb-0">Selecciona un dataset para calcular el primer nodo.</p>
+                    </div>
                 </div>
             </section>
         </div>
