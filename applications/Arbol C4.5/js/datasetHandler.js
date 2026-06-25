@@ -21,13 +21,23 @@ const datasetCardLink = document.getElementById("datasetCardLink");
 const exampleDatasets = {
     "Leads inmobiliaria": "datasets/leads_inmobiliaria_c45_mixto_booleano_45.csv",
     "Mantenimiento": "datasets/mantenimiento_c45_mixto_booleano_60.csv",
-    "Conversion web": "datasets/conversion_web_c45_mixto_booleano_90.csv",
-    "Prestamos": "datasets/prestamos_c45_mixto_booleano_150.csv",
+    "Conversión web": "datasets/conversion_web_c45_mixto_booleano_90.csv",
+    "Préstamos": "datasets/prestamos_c45_mixto_booleano_150.csv",
     "Estudiantes": "datasets/estudiantes_c45_mixto_booleano_150.csv"
 };
 
 let currentDataset = null;
 let currentTreeStep = 0;
+const DATASET_PREVIEW_BATCH_SIZE = 50;
+const CALCULATION_TABLE_BATCH_SIZE = 50;
+const MIN_ZOOM = 0.6;
+const MAX_ZOOM = 2.5;
+const ZOOM_STEP = 0.2;
+const MAGNIFIER_ZOOM = 2.25;
+
+let treeZoomScale = 1;
+let treeZoomState = null;
+let treeMagnifierEnabled = false;
 
 csvFileInput.addEventListener("change", handleCsvUpload);
 clearDatasetButton.addEventListener("click", clearDataset);
@@ -268,15 +278,66 @@ function renderDatasetPreview(datasetName, rows, activeStep = null) {
     headerRow.appendChild(rowNumberHeader);
     rows[0].forEach(header => {
         const th = document.createElement("th");
-        th.textContent = header;
+        th.textContent = formatAttributeLabel(header);
+        th.title = header;
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
 
-    const tbody = document.createElement("tbody");
     const activeIndexes = activeStep ? new Set(activeStep.dataRowIndexes) : null;
     const conditionColumns = activeStep ? new Set(activeStep.activeConditions.map(condition => condition.attributeIndex)) : new Set();
-    rows.slice(1).forEach((row, rowIndex) => {
+    const dataRows = rows.slice(1);
+    const tbody = document.createElement("tbody");
+    let renderedRows = 0;
+
+    const renderNextRows = () => {
+        const nextRenderedRows = Math.min(renderedRows + DATASET_PREVIEW_BATCH_SIZE, dataRows.length);
+        appendDatasetPreviewRows({
+            tbody,
+            rows,
+            dataRows,
+            startIndex: renderedRows,
+            endIndex: nextRenderedRows,
+            activeIndexes,
+            conditionColumns
+        });
+        renderedRows = nextRenderedRows;
+    };
+
+    renderNextRows();
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    tableScroll.appendChild(table);
+    datasetPreview.appendChild(tableScroll);
+
+    const note = document.createElement("p");
+    note.classList.add("small", "text-body-secondary", "mt-2", "mb-0");
+    datasetPreview.appendChild(note);
+
+    const updatePreviewNote = () => {
+        note.textContent = activeStep
+            ? `Mostrando ${renderedRows} de ${dataRows.length} filas; las filas atenuadas no cumplen la regla actual.`
+            : `Mostrando ${renderedRows} de ${dataRows.length} filas.`;
+    };
+    updatePreviewNote();
+
+    if (dataRows.length > DATASET_PREVIEW_BATCH_SIZE) {
+        tableScroll.addEventListener("scroll", () => {
+            const nearBottom = tableScroll.scrollTop + tableScroll.clientHeight >= tableScroll.scrollHeight - 40;
+            if (!nearBottom || renderedRows >= dataRows.length) return;
+
+            renderNextRows();
+            updatePreviewNote();
+        });
+    }
+}
+
+function appendDatasetPreviewRows({ tbody, rows, dataRows, startIndex, endIndex, activeIndexes, conditionColumns }) {
+    const fragment = document.createDocumentFragment();
+
+    for (let rowIndex = startIndex; rowIndex < endIndex; rowIndex++) {
+        const row = dataRows[rowIndex];
         const tr = document.createElement("tr");
         if (activeIndexes && !activeIndexes.has(rowIndex)) {
             tr.classList.add("table-secondary");
@@ -298,20 +359,10 @@ function renderDatasetPreview(datasetName, rows, activeStep = null) {
             }
             tr.appendChild(td);
         });
-        tbody.appendChild(tr);
-    });
-
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    tableScroll.appendChild(table);
-    datasetPreview.appendChild(tableScroll);
-
-    if (rows.length > 8) {
-        const note = document.createElement("p");
-        note.classList.add("small", "text-body-secondary", "mt-2", "mb-0");
-        note.textContent = `Mostrando ${rows.length - 1} filas. Desplaza la tabla para recorrer el dataset.`;
-        datasetPreview.appendChild(note);
+        fragment.appendChild(tr);
     }
+
+    tbody.appendChild(fragment);
 }
 
 function formatActiveRulesCaption(conditions) {
@@ -328,12 +379,13 @@ function renderEmptyPreview() {
     clearElement(datasetPreview);
     const message = document.createElement("p");
     message.classList.add("text-body-secondary", "mb-0");
-    message.textContent = "Todavia no hay datos cargados.";
+    message.textContent = "Todavía no hay datos cargados.";
     datasetPreview.appendChild(message);
 }
 
 function renderEmptyTreeStep() {
     clearElement(treeStepContainer);
+    destroyTreeZoom();
     clearElement(treeSvgContainer);
     const message = document.createElement("p");
     message.classList.add("text-body-secondary", "text-center", "mb-0");
@@ -422,16 +474,39 @@ function createC45ValueTable(evaluation) {
     table.appendChild(createC45ValueTableHead());
 
     const tbody = document.createElement("tbody");
-    evaluation.forEach(attributeData => {
-        if (attributeData.type === "numeric") {
-            appendNumericRows(tbody, attributeData);
-        } else {
-            appendCategoricalRows(tbody, attributeData);
-        }
-    });
+    const totalRows = countCalculationRows(evaluation);
+    const nextRow = createCalculationRowFactory(evaluation);
+    let renderedRows = 0;
+
+    const renderNextRows = () => {
+        const addedRows = appendNextCalculationRows(tbody, nextRow, CALCULATION_TABLE_BATCH_SIZE);
+        renderedRows += addedRows;
+    };
+
+    renderNextRows();
 
     table.appendChild(tbody);
     wrapper.appendChild(table);
+
+    const note = document.createElement("p");
+    note.classList.add("small", "text-body-secondary", "mt-2", "mb-0");
+    wrapper.appendChild(note);
+
+    const updateNote = () => {
+        note.textContent = `Mostrando ${renderedRows} de ${totalRows} filas calculadas.`;
+    };
+    updateNote();
+
+    if (totalRows > CALCULATION_TABLE_BATCH_SIZE) {
+        wrapper.addEventListener("scroll", () => {
+            const nearBottom = wrapper.scrollTop + wrapper.clientHeight >= wrapper.scrollHeight - 40;
+            if (!nearBottom || renderedRows >= totalRows) return;
+
+            renderNextRows();
+            updateNote();
+        });
+    }
+
     return wrapper;
 }
 
@@ -473,62 +548,120 @@ function createC45ValueTableHead() {
     return thead;
 }
 
-function appendCategoricalRows(tbody, attributeData) {
-    const rows = attributeData.candidates;
-    rows.forEach((candidate, index) => {
-        const tr = document.createElement("tr");
-        if (index === 0) tr.classList.add("table-group-divider");
-        const selectedClass = attributeData.selected ? "table-warning" : "";
-
-        if (index === 0) {
-            tr.appendChild(createCell(attributeData.attribute, { rowSpan: rows.length, classes: ["fw-semibold", selectedClass] }));
-        }
-
-        tr.appendChild(createCell(candidate.value));
-        appendClassCountCells(tr, candidate.classCounts);
-        tr.appendChild(createCell(formatNumber(candidate.ratio)));
-        tr.appendChild(createCell(formatNumber(candidate.entropy)));
-
-        if (index === 0) {
-            tr.appendChild(createCell(formatNumber(attributeData.conditionalEntropy), { rowSpan: rows.length, classes: [selectedClass] }));
-            tr.appendChild(createCell(formatNumber(attributeData.informationGain), { rowSpan: rows.length, classes: [selectedClass] }));
-            tr.appendChild(createCell(formatNumber(attributeData.splitInfo), { rowSpan: rows.length, classes: [selectedClass] }));
-            const gainRatioText = `${formatNumber(attributeData.gainRatio)}${attributeData.selected ? " Seleccionado" : ""}`;
-            tr.appendChild(createCell(gainRatioText, { rowSpan: rows.length, classes: ["fw-semibold", selectedClass] }));
-        }
-
-        tbody.appendChild(tr);
-    });
+function countCalculationRows(evaluation) {
+    return evaluation.reduce((total, attributeData) => {
+        return total + (attributeData.type === "numeric"
+            ? attributeData.candidates.length * 2
+            : attributeData.candidates.length);
+    }, 0);
 }
 
-function appendNumericRows(tbody, attributeData) {
+function appendNextCalculationRows(tbody, nextRow, batchSize) {
+    const fragment = document.createDocumentFragment();
+    let addedRows = 0;
+
+    while (addedRows < batchSize) {
+        const row = nextRow();
+        if (!row) break;
+        fragment.appendChild(row);
+        addedRows++;
+    }
+
+    tbody.appendChild(fragment);
+    return addedRows;
+}
+
+function createCalculationRowFactory(evaluation) {
+    let attributeIndex = 0;
+    let candidateIndex = 0;
+    let groupIndex = 0;
+
+    return function nextRow() {
+        while (attributeIndex < evaluation.length) {
+            const attributeData = evaluation[attributeIndex];
+            const row = attributeData.type === "numeric"
+                ? createNextNumericCalculationRow(attributeData, candidateIndex, groupIndex)
+                : createNextCategoricalCalculationRow(attributeData, candidateIndex);
+
+            if (attributeData.type === "numeric") {
+                groupIndex++;
+                if (groupIndex >= 2) {
+                    groupIndex = 0;
+                    candidateIndex++;
+                }
+                if (candidateIndex >= attributeData.candidates.length) {
+                    candidateIndex = 0;
+                    attributeIndex++;
+                }
+            } else {
+                candidateIndex++;
+                if (candidateIndex >= attributeData.candidates.length) {
+                    candidateIndex = 0;
+                    attributeIndex++;
+                }
+            }
+
+            if (row) return row;
+        }
+
+        return null;
+    };
+}
+
+function createNextCategoricalCalculationRow(attributeData, index) {
+    const rows = attributeData.candidates;
+    const candidate = rows[index];
+    const tr = document.createElement("tr");
+    if (index === 0) tr.classList.add("table-group-divider");
+    const selectedClass = attributeData.selected ? "table-warning" : "";
+
+    if (index === 0) {
+        tr.appendChild(createCell(attributeData.attribute, { rowSpan: rows.length, classes: ["fw-semibold", selectedClass] }));
+    }
+
+    tr.appendChild(createCell(candidate.value));
+    appendClassCountCells(tr, candidate.classCounts);
+    tr.appendChild(createCell(formatNumber(candidate.ratio)));
+    tr.appendChild(createCell(formatNumber(candidate.entropy)));
+
+    if (index === 0) {
+        tr.appendChild(createCell(formatNumber(attributeData.conditionalEntropy), { rowSpan: rows.length, classes: [selectedClass] }));
+        tr.appendChild(createCell(formatNumber(attributeData.informationGain), { rowSpan: rows.length, classes: [selectedClass] }));
+        tr.appendChild(createCell(formatNumber(attributeData.splitInfo), { rowSpan: rows.length, classes: [selectedClass] }));
+        const gainRatioText = `${formatNumber(attributeData.gainRatio)}${attributeData.selected ? " Seleccionado" : ""}`;
+        tr.appendChild(createCell(gainRatioText, { rowSpan: rows.length, classes: ["fw-semibold", selectedClass] }));
+    }
+
+    return tr;
+}
+
+function createNextNumericCalculationRow(attributeData, candidateIndex, groupIndex) {
     const totalRows = attributeData.candidates.length * 2;
-    attributeData.candidates.forEach((candidate, candidateIndex) => {
-        candidate.groups.forEach((group, groupIndex) => {
-            const tr = document.createElement("tr");
-            const selected = attributeData.selected && candidate.selectedForAttribute;
-            const selectedClass = selected ? "table-warning" : "";
-            if (candidateIndex === 0 && groupIndex === 0) {
-                tr.classList.add("table-group-divider");
-                tr.appendChild(createCell(attributeData.attribute, { rowSpan: totalRows, classes: ["fw-semibold", selectedClass] }));
-            }
+    const candidate = attributeData.candidates[candidateIndex];
+    const group = candidate.groups[groupIndex];
+    const tr = document.createElement("tr");
+    const selected = attributeData.selected && candidate.selectedForAttribute;
+    const selectedClass = selected ? "table-warning" : "";
 
-            tr.appendChild(createCell(`${attributeData.attribute} ${group.label}`, { classes: [selectedClass] }));
-            appendClassCountCells(tr, group.classCounts, selectedClass);
-            tr.appendChild(createCell(formatNumber(group.ratio), { classes: [selectedClass] }));
-            tr.appendChild(createCell(formatNumber(group.entropy), { classes: [selectedClass] }));
+    if (candidateIndex === 0 && groupIndex === 0) {
+        tr.classList.add("table-group-divider");
+        tr.appendChild(createCell(attributeData.attribute, { rowSpan: totalRows, classes: ["fw-semibold", selectedClass] }));
+    }
 
-            if (groupIndex === 0) {
-                tr.appendChild(createCell(formatNumber(candidate.conditionalEntropy), { rowSpan: 2, classes: [selectedClass] }));
-                tr.appendChild(createCell(formatNumber(candidate.informationGain), { rowSpan: 2, classes: [selectedClass] }));
-                tr.appendChild(createCell(formatNumber(candidate.splitInfo), { rowSpan: 2, classes: [selectedClass] }));
-                const gainRatioText = `${formatNumber(candidate.gainRatio)}${selected ? " Seleccionado" : ""}`;
-                tr.appendChild(createCell(gainRatioText, { rowSpan: 2, classes: ["fw-semibold", selectedClass] }));
-            }
+    tr.appendChild(createCell(`${attributeData.attribute} ${group.label}`, { classes: [selectedClass] }));
+    appendClassCountCells(tr, group.classCounts, selectedClass);
+    tr.appendChild(createCell(formatNumber(group.ratio), { classes: [selectedClass] }));
+    tr.appendChild(createCell(formatNumber(group.entropy), { classes: [selectedClass] }));
 
-            tbody.appendChild(tr);
-        });
-    });
+    if (groupIndex === 0) {
+        tr.appendChild(createCell(formatNumber(candidate.conditionalEntropy), { rowSpan: 2, classes: [selectedClass] }));
+        tr.appendChild(createCell(formatNumber(candidate.informationGain), { rowSpan: 2, classes: [selectedClass] }));
+        tr.appendChild(createCell(formatNumber(candidate.splitInfo), { rowSpan: 2, classes: [selectedClass] }));
+        const gainRatioText = `${formatNumber(candidate.gainRatio)}${selected ? " Seleccionado" : ""}`;
+        tr.appendChild(createCell(gainRatioText, { rowSpan: 2, classes: ["fw-semibold", selectedClass] }));
+    }
+
+    return tr;
 }
 
 function appendClassCountCells(row, classCounts, extraClass = "") {
@@ -587,13 +720,14 @@ function createCell(text, options = {}) {
 }
 
 function renderProgressiveTree(maxStepNumber) {
+    destroyTreeZoom();
     clearElement(treeSvgContainer);
     const nodes = [];
     collectVisibleNodes(currentDataset.model.root, maxStepNumber, nodes);
     if (nodes.length === 0) return;
 
-    const maxX = Math.max(...nodes.map(node => node.x)) + 120;
-    const maxY = Math.max(...nodes.map(node => node.y)) + 110;
+    const maxX = Math.max(...nodes.map(node => node.x)) + 80;
+    const maxY = Math.max(...nodes.map(node => node.y)) + 70;
     const svg = createSvgElement("svg", {
         id: "svgDT",
         class: "chosen-node-svg c45-tree-svg",
@@ -601,23 +735,6 @@ function renderProgressiveTree(maxStepNumber) {
         role: "img",
         "aria-label": "Árbol de decisión C4.5"
     });
-
-    const defs = createSvgElement("defs");
-    const marker = createSvgElement("marker", {
-        id: "chosenNodeArrowC45",
-        markerWidth: "10",
-        markerHeight: "10",
-        refX: "8",
-        refY: "5",
-        orient: "auto",
-        markerUnits: "strokeWidth"
-    });
-    marker.appendChild(createSvgElement("path", {
-        d: "M 0 0 L 10 5 L 0 10 z",
-        fill: "#1f2933"
-    }));
-    defs.appendChild(marker);
-    svg.appendChild(defs);
 
     nodes.forEach(node => {
         node.children
@@ -634,12 +751,274 @@ function renderProgressiveTree(maxStepNumber) {
     const wrapper = document.createElement("div");
     wrapper.classList.add("chosen-node-preview");
     wrapper.appendChild(svg);
-    treeSvgContainer.appendChild(wrapper);
+
+    const controls = createTreeZoomControls();
+    const treeZoomContainer = document.createElement("div");
+    treeZoomContainer.id = "treeZoomContainer";
+    treeZoomContainer.classList.add("tree-zoom-container");
+
+    const scaleShell = document.createElement("div");
+    scaleShell.classList.add("tree-zoom-scale-shell");
+    wrapper.classList.add("tree-zoom-content");
+    scaleShell.appendChild(wrapper);
+    treeZoomContainer.appendChild(scaleShell);
+
+    treeSvgContainer.appendChild(controls);
+    treeSvgContainer.appendChild(treeZoomContainer);
+    initializeTreeZoom(treeZoomContainer, scaleShell, wrapper, controls);
 }
 
 export function refreshTreeLayout() {
     if (!currentDataset) return;
     renderProgressiveTree(currentDataset.model.steps[currentTreeStep].stepNumber);
+}
+
+function createTreeZoomControls() {
+    const controls = document.createElement("div");
+    controls.classList.add("tree-zoom-controls");
+
+    const thresholdLegend = document.createElement("div");
+    thresholdLegend.classList.add("tree-threshold-legend");
+    thresholdLegend.setAttribute("aria-label", "Leyenda de ramas con umbrales");
+    thresholdLegend.append(
+        createThresholdLegendItem("<=", "datos por debajo o igual que el umbral"),
+        createThresholdLegendItem(">", "datos por encima del umbral")
+    );
+
+    const treeMagnifierButton = createTreeZoomButton("Lupa", "Activar lupa del árbol", toggleTreeMagnifier);
+    treeMagnifierButton.id = "treeMagnifierButton";
+    treeMagnifierButton.setAttribute("aria-pressed", "false");
+
+    const zoomOutButton = createTreeZoomButton("-", "Reducir zoom del árbol", () => setTreeZoomScale(treeZoomScale - ZOOM_STEP));
+    zoomOutButton.id = "zoomOutButton";
+
+    const resetZoomButton = createTreeZoomButton("100%", "Restaurar zoom del árbol", () => setTreeZoomScale(1));
+    resetZoomButton.id = "resetZoomButton";
+
+    const zoomInButton = createTreeZoomButton("+", "Aumentar zoom del árbol", () => setTreeZoomScale(treeZoomScale + ZOOM_STEP));
+    zoomInButton.id = "zoomInButton";
+
+    const zoomIndicator = document.createElement("span");
+    zoomIndicator.classList.add("tree-zoom-indicator");
+    zoomIndicator.setAttribute("aria-live", "polite");
+
+    controls.append(thresholdLegend, treeMagnifierButton, zoomOutButton, resetZoomButton, zoomInButton, zoomIndicator);
+    controls.treeMagnifierButton = treeMagnifierButton;
+    controls.zoomOutButton = zoomOutButton;
+    controls.resetZoomButton = resetZoomButton;
+    controls.zoomInButton = zoomInButton;
+    controls.zoomIndicator = zoomIndicator;
+    return controls;
+}
+
+function createThresholdLegendItem(operator, description) {
+    const item = document.createElement("span");
+    item.classList.add("tree-threshold-legend-item");
+
+    const symbol = document.createElement("span");
+    symbol.classList.add("tree-threshold-legend-symbol");
+    symbol.textContent = operator;
+
+    const text = document.createElement("span");
+    text.textContent = description;
+
+    item.append(symbol, text);
+    return item;
+}
+
+function createTreeZoomButton(text, ariaLabel, action) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.classList.add("tree-zoom-button");
+    button.textContent = text;
+    button.setAttribute("aria-label", ariaLabel);
+    button.title = ariaLabel;
+    button.addEventListener("click", action);
+    return button;
+}
+
+function initializeTreeZoom(treeZoomContainer, scaleShell, treeZoomContent, controls) {
+    const treeMagnifier = document.createElement("div");
+    treeMagnifier.id = "treeMagnifier";
+    treeMagnifier.classList.add("tree-magnifier");
+    treeZoomContainer.appendChild(treeMagnifier);
+
+    treeZoomState = {
+        treeZoomContainer,
+        scaleShell,
+        treeZoomContent,
+        treeMagnifier,
+        controls,
+        baseWidth: 0,
+        baseHeight: 0,
+        isPointerInside: false,
+        lastPointer: null
+    };
+
+    const syncLens = () => syncTreeMagnifierContent();
+    const handleMouseEnter = event => {
+        if (!canShowTreeMagnifier()) return;
+        treeZoomState.isPointerInside = true;
+        treeMagnifier.classList.add("is-visible");
+        updateTreeMagnifier(event);
+    };
+    const handleMouseMove = event => updateTreeMagnifier(event);
+    const handleMouseLeave = () => hideTreeMagnifier();
+    const handleScroll = () => {
+        if (treeZoomState?.isPointerInside && treeZoomState.lastPointer) {
+            updateTreeMagnifier(treeZoomState.lastPointer);
+        }
+    };
+
+    treeZoomState.listeners = [
+        [treeZoomContainer, "mouseenter", handleMouseEnter],
+        [treeZoomContainer, "mousemove", handleMouseMove],
+        [treeZoomContainer, "mouseleave", handleMouseLeave],
+        [treeZoomContainer, "scroll", handleScroll],
+        [window, "resize", syncLens]
+    ];
+    treeZoomState.listeners.forEach(([target, type, listener]) => target.addEventListener(type, listener));
+
+    applyTreeZoomScale();
+    requestAnimationFrame(() => {
+        updateTreeZoomShellSize();
+        syncTreeMagnifierContent();
+        updateTreeZoomControls();
+    });
+}
+
+function destroyTreeZoom() {
+    if (!treeZoomState) return;
+    treeZoomState.listeners?.forEach(([target, type, listener]) => target.removeEventListener(type, listener));
+    treeZoomState = null;
+}
+
+function setTreeZoomScale(nextScale) {
+    treeZoomScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(nextScale.toFixed(2))));
+    applyTreeZoomScale();
+}
+
+function toggleTreeMagnifier() {
+    treeMagnifierEnabled = !treeMagnifierEnabled;
+    if (!treeMagnifierEnabled) hideTreeMagnifier();
+    updateTreeZoomControls();
+}
+
+function applyTreeZoomScale() {
+    if (!treeZoomState) return;
+
+    treeZoomState.treeZoomContent.style.transform = `scale(${treeZoomScale})`;
+    updateTreeZoomControls();
+    requestAnimationFrame(() => {
+        updateTreeZoomShellSize();
+        syncTreeMagnifierContent();
+        if (treeZoomState?.isPointerInside && treeZoomState.lastPointer) {
+            updateTreeMagnifier(treeZoomState.lastPointer);
+        }
+    });
+}
+
+function updateTreeZoomShellSize() {
+    if (!treeZoomState) return;
+
+    const { scaleShell, treeZoomContent } = treeZoomState;
+    const rect = treeZoomContent.getBoundingClientRect();
+    const baseWidth = treeZoomContent.scrollWidth || rect.width / treeZoomScale;
+    const baseHeight = treeZoomContent.scrollHeight || rect.height / treeZoomScale;
+    treeZoomState.baseWidth = baseWidth;
+    treeZoomState.baseHeight = baseHeight;
+    scaleShell.style.width = `${baseWidth * treeZoomScale}px`;
+    scaleShell.style.height = `${baseHeight * treeZoomScale}px`;
+}
+
+function updateTreeZoomControls() {
+    if (!treeZoomState) return;
+
+    const { treeMagnifierButton, zoomInButton, zoomOutButton, resetZoomButton, zoomIndicator } = treeZoomState.controls;
+    const canUseMagnifier = canUseTreeMagnifier();
+    treeMagnifierButton.disabled = !canUseMagnifier;
+    treeMagnifierButton.classList.toggle("is-active", treeMagnifierEnabled && canUseMagnifier);
+    treeMagnifierButton.setAttribute("aria-pressed", String(treeMagnifierEnabled && canUseMagnifier));
+    treeMagnifierButton.setAttribute(
+        "aria-label",
+        treeMagnifierEnabled && canUseMagnifier ? "Desactivar lupa del árbol" : "Activar lupa del árbol"
+    );
+    treeMagnifierButton.title = treeMagnifierButton.getAttribute("aria-label");
+    zoomOutButton.disabled = treeZoomScale <= MIN_ZOOM;
+    zoomInButton.disabled = treeZoomScale >= MAX_ZOOM;
+    resetZoomButton.disabled = treeZoomScale === 1;
+    resetZoomButton.textContent = "100%";
+    zoomIndicator.textContent = `${Math.round(treeZoomScale * 100)}%`;
+}
+
+function canUseTreeMagnifier() {
+    return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+function canShowTreeMagnifier() {
+    return treeMagnifierEnabled && canUseTreeMagnifier();
+}
+
+function hideTreeMagnifier() {
+    if (!treeZoomState) return;
+    treeZoomState.isPointerInside = false;
+    treeZoomState.lastPointer = null;
+    treeZoomState.treeMagnifier.classList.remove("is-visible");
+}
+
+function syncTreeMagnifierContent() {
+    if (!treeZoomState) return;
+
+    const { treeMagnifier, treeZoomContent } = treeZoomState;
+    clearElement(treeMagnifier);
+    const magnifiedContent = treeZoomContent.cloneNode(true);
+    magnifiedContent.classList.add("tree-magnifier-content");
+    magnifiedContent.style.width = `${treeZoomState.baseWidth || treeZoomContent.scrollWidth}px`;
+    magnifiedContent.style.height = `${treeZoomState.baseHeight || treeZoomContent.scrollHeight}px`;
+    magnifiedContent.style.transform = "none";
+    magnifiedContent.removeAttribute("id");
+    treeMagnifier.appendChild(magnifiedContent);
+}
+
+function updateTreeMagnifier(event) {
+    if (!treeZoomState || !canShowTreeMagnifier()) {
+        hideTreeMagnifier();
+        return;
+    }
+
+    const { treeZoomContainer, treeMagnifier } = treeZoomState;
+    const rect = treeZoomContainer.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left;
+    const pointerY = event.clientY - rect.top;
+
+    if (pointerX < 0 || pointerY < 0 || pointerX > rect.width || pointerY > rect.height) {
+        hideTreeMagnifier();
+        return;
+    }
+
+    treeZoomState.lastPointer = event;
+
+    const size = treeMagnifier.offsetWidth || 200;
+    const radius = size / 2;
+    const left = clamp(pointerX - radius, 0, Math.max(0, treeZoomContainer.clientWidth - size));
+    const top = clamp(pointerY - radius, 0, Math.max(0, treeZoomContainer.clientHeight - size));
+    const sourceX = treeZoomContainer.scrollLeft + pointerX;
+    const sourceY = treeZoomContainer.scrollTop + pointerY;
+    const magnifiedContent = treeMagnifier.firstElementChild;
+
+    treeMagnifier.style.left = `${treeZoomContainer.scrollLeft + left}px`;
+    treeMagnifier.style.top = `${treeZoomContainer.scrollTop + top}px`;
+
+    if (magnifiedContent) {
+        const scale = treeZoomScale * MAGNIFIER_ZOOM;
+        const translateX = radius - (sourceX / treeZoomScale) * scale;
+        const translateY = radius - (sourceY / treeZoomScale) * scale;
+        magnifiedContent.style.transform = `matrix(${scale}, 0, 0, ${scale}, ${translateX}, ${translateY})`;
+    }
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
 }
 
 function collectVisibleNodes(node, maxStepNumber, nodes) {
@@ -650,30 +1029,48 @@ function collectVisibleNodes(node, maxStepNumber, nodes) {
 
 function createTreeBranch(parent, child) {
     const group = createSvgElement("g");
+    const parentBottomOffset = parent.isLeaf ? 32 : 39;
+    const childTopOffset = child.isLeaf ? 32 : 39;
     group.appendChild(createSvgElement("line", {
         x1: parent.x,
-        y1: parent.y + 45,
+        y1: parent.y + parentBottomOffset,
         x2: child.x,
-        y2: child.y - 35,
-        class: "chosen-node-svg-branch-line",
-        "marker-end": "url(#chosenNodeArrowC45)"
+        y2: child.y - childTopOffset,
+        class: "chosen-node-svg-branch-line"
     }));
 
     const labelX = (parent.x + child.x) / 2;
     const labelY = (parent.y + child.y) / 2;
-    group.appendChild(createBranchLabel(shortenText(child.branchCondition?.label || "", 16), labelX, labelY));
+    const fullBranchLabel = child.branchCondition?.label || formatBranchLabel(child.branchCondition);
+    group.appendChild(createBranchLabel(shortenText(formatBranchLabel(child.branchCondition), 16), fullBranchLabel, labelX, labelY));
     return group;
+}
+
+function formatBranchLabel(condition) {
+    if (!condition) return "";
+    return condition.operator === "<=" || condition.operator === ">"
+        ? condition.operator
+        : condition.label;
 }
 
 function createTreeNodeGraphic(node, isCurrent) {
     const group = createSvgElement("g", { class: "chosen-node-svg-card" });
-    const width = 150;
-    const height = node.isLeaf ? 98 : 120;
+    const width = node.isLeaf ? 96 : 118;
+    const height = node.isLeaf ? 66 : 78;
     const x = node.x - width / 2;
     const y = node.y - height / 2;
     const boxClass = node.isLeaf
         ? `chosen-node-svg-leaf-box ${node.stopReason === "pure" ? "chosen-node-svg-leaf-defined" : "chosen-node-svg-leaf-pending"}`
         : "chosen-node-svg-shell";
+
+    const fullTitle = node.isLeaf
+        ? `Hoja ${node.id}`
+        : (node.attributeType === "numeric" ? `${node.attribute} <= ${formatNumber(node.threshold)}` : node.attribute);
+    const displayedTitle = node.isLeaf
+        ? fullTitle
+        : (node.attributeType === "numeric" ? `${formatAttributeLabel(node.attribute)} <= ${formatNumber(node.threshold)}` : formatAttributeLabel(node.attribute));
+
+    appendSvgTitle(group, fullTitle);
 
     group.appendChild(createSvgElement("rect", {
         x,
@@ -689,52 +1086,63 @@ function createTreeNodeGraphic(node, isCurrent) {
             x,
             y,
             width,
-            height: 28,
+            height: 22,
             rx: "8",
             class: "chosen-node-svg-header"
         }));
     }
 
-    const title = node.isLeaf
-        ? `Hoja ${node.id}`
-        : (node.attributeType === "numeric" ? `${node.attribute} <= ${formatNumber(node.threshold)}` : node.attribute);
-    group.appendChild(createSvgText(shortenText(title, 18), node.x, y + 20, ["chosen-node-svg-title"], "middle"));
-    group.appendChild(createSvgText(`N = ${node.n}`, x + 12, y + 48, ["chosen-node-svg-text"]));
-    group.appendChild(createSvgText(`E = ${formatNumber(node.entropy)}`, x + 12, y + 68, ["chosen-node-svg-text"]));
-
+    const title = createSvgText(shortenText(displayedTitle, 15), node.x, y + 16, ["chosen-node-svg-title"], "middle", fullTitle);
+    group.appendChild(title);
     if (node.isLeaf) {
-        group.appendChild(createSvgText(`Clase: ${node.predictedLabel}`, x + 12, y + 88, ["chosen-node-svg-text"]));
+        group.appendChild(createSvgText(`N = ${node.n}`, x + 8, y + 33, ["chosen-node-svg-text"]));
+        group.appendChild(createSvgText(`E = ${formatNumber(node.entropy)}`, x + 8, y + 49, ["chosen-node-svg-text"]));
+        group.appendChild(createSvgText(`Clase: ${node.predictedLabel}`, x + 8, y + 63, ["chosen-node-svg-text"]));
     } else {
-        group.appendChild(createSvgText(`GR = ${formatNumber(node.gainRatio)}`, x + 12, y + 88, ["chosen-node-svg-text"]));
-        group.appendChild(createSvgText(`Nodo ${node.id}`, x + 12, y + 108, ["chosen-node-svg-text"]));
+        group.appendChild(createSvgText(`N = ${node.n}`, x + 9, y + 34, ["chosen-node-svg-text"]));
+        group.appendChild(createSvgText(`E = ${formatNumber(node.entropy)}`, x + 9, y + 50, ["chosen-node-svg-text"]));
+        group.appendChild(createSvgText(`GR = ${formatNumber(node.gainRatio)}`, x + 9, y + 64, ["chosen-node-svg-text"]));
+        group.appendChild(createSvgText(`Nodo ${node.id}`, x + 9, y + 76, ["chosen-node-svg-text"]));
     }
 
     return group;
 }
 
-function createBranchLabel(text, x, y) {
+function createBranchLabel(text, fullText, x, y) {
     const group = createSvgElement("g");
+    const paddingX = 8;
+    const estimatedTextWidth = Math.max(18, text.length * 7);
+    const width = estimatedTextWidth + paddingX * 2;
+    appendSvgTitle(group, fullText);
     group.appendChild(createSvgElement("rect", {
-        x: x - 54,
-        y: y - 18,
-        width: 108,
-        height: 26,
+        x: x - width / 2,
+        y: y - 14,
+        width,
+        height: 20,
         rx: 6,
         class: "chosen-node-svg-label-bg"
     }));
-    group.appendChild(createSvgText(text, x, y, ["chosen-node-svg-branch-condition"], "middle"));
+    group.appendChild(createSvgText(text, x, y, ["chosen-node-svg-branch-condition"], "middle", fullText));
     return group;
 }
 
-function createSvgText(text, x, y, classes = ["chosen-node-svg-text"], anchor = "start") {
+function createSvgText(text, x, y, classes = ["chosen-node-svg-text"], anchor = "start", titleText = "") {
     const element = createSvgElement("text", {
         x,
         y,
         class: classes.join(" "),
         "text-anchor": anchor
     });
-    element.textContent = text;
+    if (titleText && titleText !== text) appendSvgTitle(element, titleText);
+    element.appendChild(document.createTextNode(text));
     return element;
+}
+
+function appendSvgTitle(element, text) {
+    if (!text) return;
+    const title = createSvgElement("title");
+    title.textContent = text;
+    element.appendChild(title);
 }
 
 function createSvgElement(name, attributes = {}) {
@@ -747,6 +1155,23 @@ function createSvgElement(name, attributes = {}) {
 
 function shortenText(text, maxLength) {
     return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+}
+
+function formatAttributeLabel(attribute) {
+    const normalized = String(attribute).trim();
+    if (normalized.length <= 6) return normalized;
+
+    const words = normalized
+        .split(/[\s_-]+/)
+        .map(word => word.replace(/[^\p{L}\p{N}]/gu, ""))
+        .filter(Boolean)
+        .filter(word => !["de", "del", "la", "las", "el", "los"].includes(word.toLocaleLowerCase("es")));
+
+    if (words.length >= 2) {
+        return `${words[0].slice(0, 3)}_${words[words.length - 1].slice(0, 2)}`;
+    }
+
+    return normalized.slice(0, 6);
 }
 
 function clearElement(element) {

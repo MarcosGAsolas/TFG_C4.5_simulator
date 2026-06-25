@@ -75,12 +75,12 @@ main.container {
 }
 
 .simulator-workspace {
-    --tree-size: 1.35fr;
-    --dataset-size: 1fr;
-    --calculations-size: 1.15fr;
-    width: min(1500px, calc(100vw - 3rem));
+    --tree-size: 2fr;
+    --dataset-size: 0.85fr;
+    --calculations-size: 0.95fr;
+    width: calc(100vw - 1.5rem);
     min-width: 0;
-    margin: 0 auto 1rem;
+    margin: 0 0 1rem calc(50% - 50vw + 0.75rem);
     display: grid;
     grid-template-columns:
         minmax(0, var(--tree-size))
@@ -169,7 +169,111 @@ main.container {
 #treeSvgContainer {
     width: 100%;
     min-width: 0;
+    overflow: hidden;
+}
+
+.tree-zoom-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #e4e9f0;
+    background: #fbfcfe;
+}
+
+.tree-threshold-legend {
+    display: inline-flex;
+    flex: 1 1 18rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.75rem;
+    color: #475569;
+    font-size: 0.76rem;
+}
+
+.tree-threshold-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.tree-threshold-legend-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.85rem;
+    height: 1.45rem;
+    border: 1px solid #d7dde5;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #1f2933;
+    font-weight: 700;
+}
+
+.tree-zoom-button {
+    min-width: 2.15rem;
+    height: 2rem;
+    border: 1px solid #cfd7e3;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #1f2933;
+    font-weight: 700;
+    line-height: 1;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.tree-zoom-button:hover:not(:disabled),
+.tree-zoom-button:focus-visible {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.tree-zoom-button.is-active {
+    border-color: #2563eb;
+    background: #e8f0ff;
+    color: #1d4ed8;
+}
+
+.tree-zoom-button:focus-visible {
+    outline: 2px solid #7aa7ff;
+    outline-offset: 2px;
+}
+
+.tree-zoom-button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.tree-zoom-indicator {
+    min-width: 3.25rem;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.tree-zoom-container {
+    position: relative;
+    width: 100%;
+    max-height: min(650px, 68vh);
+    min-height: 18rem;
     overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.tree-zoom-scale-shell {
+    position: relative;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.tree-zoom-content {
+    transform-origin: 0 0;
+    transition: transform 0.16s ease;
 }
 
 .table-wrapper,
@@ -182,7 +286,7 @@ main.container {
 }
 
 .tree-table-scroll {
-    max-height: none;
+    max-height: min(560px, 62vh);
     overflow: auto;
 }
 
@@ -233,9 +337,10 @@ main.container {
 
 .tree-node-values-wrapper {
     width: 100%;
+    max-height: min(560px, 62vh);
     margin-right: auto;
     margin-left: auto;
-    overflow-x: auto;
+    overflow: auto;
 }
 
 .tree-node-values-table {
@@ -252,7 +357,7 @@ main.container {
     display: flex;
     justify-content: flex-start;
     width: 100%;
-    overflow-x: auto;
+    overflow: visible;
 }
 
 .chosen-node-svg {
@@ -263,6 +368,37 @@ main.container {
 
 .c45-tree-svg {
     min-width: 72rem;
+}
+
+.tree-magnifier {
+    --tree-magnifier-size: clamp(180px, 22vw, 220px);
+    position: absolute;
+    z-index: 6;
+    width: var(--tree-magnifier-size);
+    height: var(--tree-magnifier-size);
+    overflow: hidden;
+    border: 2px solid rgba(31, 41, 51, 0.38);
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 16px 38px rgba(15, 23, 42, 0.22);
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.96);
+    transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.tree-magnifier.is-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.tree-magnifier-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    transform-origin: 0 0;
+    transition: none;
 }
 
 .c45-current-node {
@@ -292,13 +428,13 @@ main.container {
 }
 
 .chosen-node-svg-text {
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 500;
 }
 
 .chosen-node-svg-title,
 .chosen-node-svg-leaf-text {
-    font-size: 17px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -353,5 +489,20 @@ main.container {
 
     .step-btn {
         font-size: 0.95rem;
+    }
+
+    .tree-zoom-container {
+        max-height: 60vh;
+        min-height: 16rem;
+    }
+
+    .tree-zoom-controls {
+        justify-content: center;
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .tree-magnifier {
+        display: none;
     }
 }

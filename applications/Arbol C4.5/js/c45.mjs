@@ -412,13 +412,14 @@ function walkTree(node, callback) {
 
 function assignTreePositions(root) {
     let leafIndex = 0;
-    const spacingX = 180;
-    const spacingY = 190;
+    const spacingX = 112;
+    const spacingY = 128;
+    const minCanvasWidth = 720;
 
     function assign(node) {
         node.y = 60 + node.depth * spacingY;
         if (node.children.length === 0) {
-            node.x = 90 + leafIndex * spacingX;
+            node.x = 56 + leafIndex * spacingX;
             leafIndex++;
             return node.x;
         }
@@ -428,6 +429,22 @@ function assignTreePositions(root) {
     }
 
     assign(root);
+    centerCompactTree(root, minCanvasWidth);
+}
+
+function centerCompactTree(root, minCanvasWidth) {
+    const nodes = [];
+    walkTree(root, node => nodes.push(node));
+
+    const minX = Math.min(...nodes.map(node => node.x));
+    const maxX = Math.max(...nodes.map(node => node.x));
+    const treeWidth = maxX - minX;
+    if (treeWidth >= minCanvasWidth) return;
+
+    const shiftX = minCanvasWidth / 2 - root.x;
+    nodes.forEach(node => {
+        node.x += shiftX;
+    });
 }
 
 function countLabels(labels, knownLabels = []) {
