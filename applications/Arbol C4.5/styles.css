@@ -74,6 +74,35 @@ main.container {
     border-radius: 6px;
 }
 
+.section-switcher {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem 4rem;
+    margin-bottom: 1rem;
+}
+
+.section-switcher-current {
+    color: #000;
+    font-size: 2rem;
+    font-weight: 400;
+}
+
+.section-switcher-link {
+    color: #6c757d;
+    font-size: 2rem;
+    font-weight: 400;
+    opacity: 0.45;
+    text-decoration: none;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.section-switcher-link:hover {
+    color: #000;
+    opacity: 0.75;
+}
+
 .simulator-workspace {
     --tree-size: 2fr;
     --dataset-size: 0.85fr;

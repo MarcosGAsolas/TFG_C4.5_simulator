@@ -38,6 +38,7 @@ const MAGNIFIER_ZOOM = 2.25;
 let treeZoomScale = 1;
 let treeZoomState = null;
 let treeMagnifierEnabled = false;
+const isPruningPage = window.location.pathname.toLowerCase().endsWith("/poda.html");
 
 csvFileInput.addEventListener("change", handleCsvUpload);
 clearDatasetButton.addEventListener("click", clearDataset);
@@ -189,7 +190,11 @@ function setDataset(dataset) {
     renderDatasetInfo(currentDataset);
     showTreeStepControls();
     renderTreeStepButtons();
-    goToTreeStep(0);
+    if (isPruningPage) {
+        renderPruningInitialStep();
+    } else {
+        goToTreeStep(0);
+    }
 }
 
 function clearDataset() {
@@ -405,6 +410,27 @@ function goToTreeStep(stepIndex) {
     renderDatasetPreview(currentDataset.name, currentDataset.rows, step);
     renderStepValueTable(step);
     renderProgressiveTree(step.stepNumber);
+}
+
+function renderPruningInitialStep() {
+    if (!currentDataset) return;
+
+    currentTreeStep = currentDataset.model.steps.length - 1;
+    updateTreeStepButtons();
+
+    const fullTreeStep = currentDataset.model.steps[currentTreeStep];
+    treeStepTitle.textContent = "Paso 1: Arbol completo para poda";
+    renderDatasetPreview(currentDataset.name, currentDataset.rows);
+    renderPruningValuePanel();
+    renderProgressiveTree(fullTreeStep.stepNumber);
+}
+
+function renderPruningValuePanel() {
+    clearElement(treeStepContainer);
+    const message = document.createElement("p");
+    message.classList.add("text-body-secondary", "text-center", "mb-0", "p-3");
+    message.textContent = "La poda parte del arbol completo. Revisa el arbol generado para analizar que subarboles podrian simplificarse.";
+    treeStepContainer.appendChild(message);
 }
 
 function updateTreeStepButtons() {

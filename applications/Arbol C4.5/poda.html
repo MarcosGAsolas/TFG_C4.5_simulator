@@ -15,7 +15,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulación Árbol C4.5</title>
+    <title>Poda C4.5</title>
 </head>
 
 <body>
@@ -36,13 +36,13 @@
 
     <main class="container pb-2">
         <div class="section-switcher">
-            <span class="section-switcher-current">Simulación Árbol C4.5</span>
-            <a href="poda.html" class="section-switcher-link">Poda</a>
+            <a href="index.html" class="section-switcher-link">Simulación Árbol C4.5</a>
+            <span class="section-switcher-current">Poda</span>
         </div>
 
         <div class="row justify-content-center gy-3 pt-2 pb-3">
             <div class="col-12 text-center">
-                <h2 class="h4">Simulación Árbol C4.5</h2>
+                <h2 class="h4">Poda</h2>
             </div>
         </div>
 
@@ -58,45 +58,24 @@
                 <div class="collapse" id="generalInfoTreeBody" aria-labelledby="generalInfoTree">
                     <div class="card-body">
                         <p class="card-text fw-light">
-                            El algoritmo C4.5 construye el árbol de decisión de forma recursiva. Para ello,
-                            parte de un conjunto de datos inicial \(S\) y de un conjunto de atributos \(A\).
+                            La poda es una fase posterior a la construcción del árbol que busca reducir ramas
+                            demasiado específicas o poco fiables. Su objetivo es mejorar la generalización del
+                            modelo y evitar que el árbol aprenda ruido del dataset de entrenamiento.
                         </p>
                         <p class="card-text fw-light">
-                            En cada iteración, el algoritmo evalúa cada atributo disponible y calcula las
-                            medidas explicadas anteriormente: entropía, ganancia de información,
-                            Split Info y Gain Ratio.
+                            En C4.5, primero se puede construir un árbol completo con las reglas de selección
+                            de atributos y umbrales. Después, la poda revisa subárboles y decide si conviene
+                            sustituirlos por una hoja o mantenerlos.
                         </p>
                         <p class="card-text fw-light">
-                            El atributo seleccionado como nodo será aquel que obtenga el mayor valor de
-                            Gain Ratio, ya que esta medida permite elegir la variable que mejor divide el
-                            conjunto de datos penalizando, al mismo tiempo, las divisiones excesivamente
-                            ramificadas.
+                            La idea principal es comparar el comportamiento estimado del subárbol frente al de
+                            una clasificación más simple. Si la rama añade complejidad sin aportar una mejora
+                            suficiente, se elimina.
                         </p>
-                        <p class="card-text fw-light">
-                            En el caso de los atributos continuos, C4.5 no divide directamente por cada
-                            valor diferente del atributo, sino que busca posibles umbrales de división. Cada
-                            umbral separa el dataset en dos subconjuntos:
-                        </p>
-                        <ul class="card-text fw-light">
-                            <li>ejemplos cuyo valor es menor o igual que el umbral</li>
-                            <li>ejemplos cuyo valor es mayor que el umbral</li>
-                        </ul>
-                        <p class="card-text fw-light">
-                            Para cada posible umbral se calcula el Gain Ratio y se selecciona aquel que
-                            produzca la mejor división.
-                        </p>
-                        <p class="card-text fw-light">
-                            El proceso continúa de forma recursiva sobre cada subconjunto generado,
-                            creando nuevos nodos y ramas hasta que se cumple alguna condición de parada:
-                        </p>
-                        <ul class="card-text fw-light">
-                            <li>todos los ejemplos de un subconjunto pertenecen a la misma clase</li>
-                            <li>no quedan atributos disponibles para dividir</li>
-                            <li>no existe una división que mejore la clasificación de los datos</li>
-                        </ul>
                         <p class="card-text fw-light mb-0">
-                            En estos casos, el algoritmo crea un nodo hoja, asignando normalmente la clase
-                            mayoritaria del subconjunto.
+                            En esta sección puedes cargar datasets y recorrer la simulación del árbol igual que
+                            en la construcción C4.5, usando la visualización para analizar qué partes podrían ser
+                            candidatas a poda.
                         </p>
                     </div>
                 </div>
@@ -105,11 +84,46 @@
                     <a class="collapsed d-block link-body-emphasis link-offset-2 link-offset-2-hover link-underline link-underline-opacity-0 link-underline-opacity-50-hover"
                         data-bs-toggle="collapse" href="#algorithmTreeBody" aria-expanded="false"
                         aria-controls="algorithmTreeBody">
-                        Algoritmo C4.5
+                        Algoritmo de poda
                     </a>
                 </div>
                 <div class="collapse" id="algorithmTreeBody" aria-labelledby="algorithmTree">
                     <div class="card-body">
+                        <p class="card-text fw-bold">Entrada:</p>
+                        <ul class="card-text fw-light">
+                            <li>Árbol de decisión construido \(T\)</li>
+                            <li>Dataset usado para estimar el error de cada nodo</li>
+                        </ul>
+
+                        <p class="card-text fw-bold">Salida:</p>
+                        <ul class="card-text fw-light">
+                            <li>Árbol de decisión podado \(T'\)</li>
+                        </ul>
+
+                        <p class="card-text fw-bold">Fórmula de error estimado:</p>
+                        <p class="card-text fw-light">
+                            \[
+                                e = \frac{E + 0.5}{N}
+                            \]
+                        </p>
+                        <ul class="card-text fw-light">
+                            <li>\(E\) es el número de errores del nodo o subárbol evaluado.</li>
+                            <li>\(N\) es el número de instancias que llegan a ese nodo.</li>
+                            <li>El término \(0.5\) suaviza la estimación del error.</li>
+                        </ul>
+
+                        <p class="card-text fw-bold">Algoritmo:</p>
+                        <ol>
+                            <li class="card-text fw-light">Recorrer el árbol desde las hojas hacia la raíz.</li>
+                            <li class="card-text fw-light">Para cada nodo interno, calcular el error estimado del subárbol completo.</li>
+                            <li class="card-text fw-light">Calcular el error estimado si ese subárbol se sustituye por una única hoja con la clase mayoritaria del nodo.</li>
+                            <li class="card-text fw-light">Comparar ambas alternativas teniendo en cuenta la complejidad del subárbol.</li>
+                            <li class="card-text fw-light">Si la hoja simplificada no empeora el error estimado, reemplazar el subárbol por esa hoja.</li>
+                            <li class="card-text fw-light">Repetir el proceso hasta revisar todos los nodos candidatos.</li>
+                            <li class="card-text fw-light">Devolver el árbol resultante tras eliminar las ramas innecesarias.</li>
+                        </ol>
+                    </div>
+                    <div class="card-body d-none">
                         <p class="card-text fw-bold">Entrada:</p>
                         <ul class="card-text fw-light">
                             <li>Dataset \(S\)</li>
