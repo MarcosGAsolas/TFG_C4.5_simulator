@@ -191,7 +191,7 @@ function setDataset(dataset) {
     showTreeStepControls();
     renderTreeStepButtons();
     if (isPruningPage) {
-        renderPruningInitialStep();
+        goToPruningStep(0);
     } else {
         goToTreeStep(0);
     }
@@ -266,7 +266,7 @@ function renderDatasetPreview(datasetName, rows, activeStep = null) {
     const title = document.createElement("p");
     title.classList.add("tree-results-caption");
     title.textContent = activeStep
-        ? formatActiveRulesCaption(activeStep.activeConditions)
+        ? activeStep.caption || formatActiveRulesCaption(activeStep.activeConditions)
         : `Vista del dataset: ${datasetName}`;
     datasetPreview.appendChild(title);
 
@@ -321,7 +321,9 @@ function renderDatasetPreview(datasetName, rows, activeStep = null) {
     datasetPreview.appendChild(note);
 
     const updatePreviewNote = () => {
-        note.textContent = activeStep
+        note.textContent = activeStep?.note
+            ? activeStep.note(renderedRows, dataRows.length)
+            : activeStep
             ? `Mostrando ${renderedRows} de ${dataRows.length} filas; las filas atenuadas no cumplen la regla actual.`
             : `Mostrando ${renderedRows} de ${dataRows.length} filas.`;
     };
@@ -412,35 +414,172 @@ function goToTreeStep(stepIndex) {
     renderProgressiveTree(step.stepNumber);
 }
 
-function renderPruningInitialStep() {
+function goToPruningStep(stepIndex) {
     if (!currentDataset) return;
 
-    currentTreeStep = currentDataset.model.steps.length - 1;
+    const pruningSteps = currentDataset.model.pruning.processSteps;
+    currentTreeStep = Math.max(0, Math.min(stepIndex, pruningSteps.length - 1));
     updateTreeStepButtons();
 
-    const fullTreeStep = currentDataset.model.steps[currentTreeStep];
-    treeStepTitle.textContent = "Paso 1: Arbol completo para poda";
-    renderDatasetPreview(currentDataset.name, currentDataset.rows);
-    renderPruningValuePanel();
-    renderProgressiveTree(fullTreeStep.stepNumber);
+    const step = pruningSteps[currentTreeStep];
+    treeStepTitle.textContent = step.title;
+    renderDatasetPreview(currentDataset.name, currentDataset.rows, createPruningDatasetStep(step));
+    renderPruningValuePanel(step);
+    renderTreeSnapshot(step.root, step.evaluation?.nodeId ?? null);
 }
 
-function renderPruningValuePanel() {
+function createPruningDatasetStep(step) {
+    if (!step?.evaluation) return null;
+    return {
+        dataRowIndexes: step.evaluation.dataRowIndexes,
+        activeConditions: [],
+        caption: `Registros usados para calcular el error del nodo ${step.evaluation.nodeId}`,
+        note: (renderedRows, totalRows) => `Mostrando ${renderedRows} de ${totalRows} filas; las filas atenuadas no llegan al nodo evaluado.`
+    };
+}
+
+function renderPruningValuePanel(step) {
     clearElement(treeStepContainer);
+    if (step?.evaluation) {
+        treeStepContainer.appendChild(createPruningCalculationView(step));
+        return;
+    }
+
     const message = document.createElement("p");
     message.classList.add("text-body-secondary", "text-center", "mb-0", "p-3");
-    message.textContent = "La poda parte del arbol completo. Revisa el arbol generado para analizar que subarboles podrian simplificarse.";
+    message.textContent = "La poda parte del arbol completo. Avanza paso a paso para evaluar los subarboles candidatos.";
     treeStepContainer.appendChild(message);
+}
+
+function createPruningCalculationView(step) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("tree-node-values-wrapper", "pruning-calculation-view");
+
+    const caption = document.createElement("p");
+    caption.classList.add("tree-results-caption", "mb-2");
+    caption.textContent = `Subarbol evaluado del nodo ${step.evaluation.nodeId}`;
+    wrapper.appendChild(caption);
+
+    const subTreeRoot = findNodeInTree(step.root, step.evaluation.nodeId);
+    if (subTreeRoot) {
+        wrapper.appendChild(createPruningSubtreeSvg(subTreeRoot, step.evaluation.nodeId));
+    }
+
+    const summary = document.createElement("p");
+    summary.classList.add("small", "text-body-secondary", "mt-2", "mb-2", "text-center");
+    if (step.action === "evaluate") {
+        summary.textContent = step.evaluation.pruned
+            ? "La comparacion indica que este subarbol se podara en el siguiente paso."
+            : "La comparacion indica que este subarbol se conservara en el siguiente paso.";
+    } else if (step.action === "pruned") {
+        summary.textContent = `Poda aplicada: el nodo ${step.evaluation.nodeId} queda como hoja y predice la clase ${step.evaluation.predictedLabel}.`;
+    } else {
+        summary.textContent = `Decision aplicada: el subarbol del nodo ${step.evaluation.nodeId} se conserva.`;
+    }
+    wrapper.appendChild(summary);
+
+    wrapper.appendChild(createPruningCalculationTable(step.evaluation));
+    return wrapper;
+}
+
+function createPruningSubtreeSvg(subTreeRoot, currentNodeId) {
+    const nodes = cloneSubtreeForPreview(subTreeRoot);
+    assignPreviewTreePositions(nodes.root);
+    const visibleNodes = [];
+    collectVisibleNodes(nodes.root, Infinity, visibleNodes, false);
+    const maxX = Math.max(...visibleNodes.map(node => node.x)) + 80;
+    const maxY = Math.max(...visibleNodes.map(node => node.y)) + 70;
+
+    const svg = createSvgElement("svg", {
+        class: "chosen-node-svg c45-tree-svg pruning-subtree-svg",
+        viewBox: `0 0 ${Math.max(360, maxX)} ${Math.max(180, maxY)}`,
+        role: "img",
+        "aria-label": `Subarbol evaluado del nodo ${currentNodeId}`
+    });
+
+    visibleNodes.forEach(node => {
+        node.children.forEach(child => svg.appendChild(createTreeBranch(node, child)));
+    });
+    visibleNodes.forEach(node => {
+        svg.appendChild(createTreeNodeGraphic(node, node.id === currentNodeId));
+    });
+
+    const preview = document.createElement("div");
+    preview.classList.add("chosen-node-preview", "pruning-subtree-preview");
+    preview.appendChild(svg);
+    return preview;
+}
+
+function createPruningCalculationTable(evaluation) {
+    const table = document.createElement("table");
+    table.classList.add("table", "caption-top", "table-bordered", "align-middle", "text-center", "tree-node-values-table");
+
+    const caption = document.createElement("caption");
+    caption.classList.add("tree-results-caption");
+    caption.textContent = "Valores de poda";
+    table.appendChild(caption);
+
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    ["Elemento", "N", "Errores", "Peso", "Error estimado"].forEach(text => {
+        const th = document.createElement("th");
+        th.scope = "col";
+        th.textContent = text;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    evaluation.leafStats.forEach(leaf => {
+        const tr = document.createElement("tr");
+        tr.appendChild(createCell(`Hoja ${leaf.nodeId} -> ${leaf.predictedLabel}`));
+        tr.appendChild(createCell(String(leaf.n)));
+        tr.appendChild(createCell(String(leaf.errors)));
+        tr.appendChild(createCell(formatNumber(leaf.weight)));
+        tr.appendChild(createCell(formatNumber(leaf.estimatedError)));
+        tbody.appendChild(tr);
+    });
+
+    const subtreeRow = document.createElement("tr");
+    subtreeRow.classList.add("table-warning");
+    subtreeRow.appendChild(createCell(`Subarbol nodo ${evaluation.nodeId}`, { classes: ["fw-semibold"] }));
+    subtreeRow.appendChild(createCell(String(evaluation.dataRowIndexes.length)));
+    subtreeRow.appendChild(createCell(String(evaluation.subtreeErrors)));
+    subtreeRow.appendChild(createCell("1.00"));
+    subtreeRow.appendChild(createCell(formatNumber(evaluation.subtreeEstimatedError), { classes: ["fw-semibold"] }));
+    tbody.appendChild(subtreeRow);
+
+    const leafRow = document.createElement("tr");
+    leafRow.classList.add(evaluation.pruned ? "table-success" : "table-secondary");
+    leafRow.appendChild(createCell(`Hoja simplificada -> ${evaluation.predictedLabel}`, { classes: ["fw-semibold"] }));
+    leafRow.appendChild(createCell(String(evaluation.dataRowIndexes.length)));
+    leafRow.appendChild(createCell(String(evaluation.simplifiedLeafErrors)));
+    leafRow.appendChild(createCell("1.00"));
+    leafRow.appendChild(createCell(formatNumber(evaluation.simplifiedLeafEstimatedError), { classes: ["fw-semibold"] }));
+    tbody.appendChild(leafRow);
+
+    const decisionRow = document.createElement("tr");
+    const decisionCell = createCell(evaluation.pruned
+        ? "Decision: podar el subarbol"
+        : "Decision: conservar el subarbol", { classes: ["fw-bold"] });
+    decisionCell.colSpan = 5;
+    decisionRow.appendChild(decisionCell);
+    tbody.appendChild(decisionRow);
+
+    table.appendChild(tbody);
+    return table;
 }
 
 function updateTreeStepButtons() {
     const buttons = treeStepButtonsContainer.querySelectorAll("button");
     buttons.forEach(button => button.classList.remove("active-step"));
     const [firstButton, previousButton, nextButton, lastButton] = buttons;
+    const lastStepIndex = getCurrentStepCount() - 1;
     firstButton.disabled = currentTreeStep === 0;
     previousButton.disabled = currentTreeStep === 0;
-    nextButton.disabled = currentTreeStep === currentDataset.model.steps.length - 1;
-    lastButton.disabled = currentTreeStep === currentDataset.model.steps.length - 1;
+    nextButton.disabled = currentTreeStep === lastStepIndex;
+    lastButton.disabled = currentTreeStep === lastStepIndex;
 }
 
 function showTreeStepControls() {
@@ -456,11 +595,12 @@ function hideTreeStepControls() {
 
 function renderTreeStepButtons() {
     clearElement(treeStepButtonsContainer);
+    const goToStep = isPruningPage ? goToPruningStep : goToTreeStep;
     const controls = [
-        { label: "|<", title: "Ir al primer paso", action: () => goToTreeStep(0) },
-        { label: "<", title: "Ir al paso anterior", action: () => goToTreeStep(currentTreeStep - 1) },
-        { label: ">", title: "Ir al paso siguiente", action: () => goToTreeStep(currentTreeStep + 1) },
-        { label: ">|", title: "Ir al último paso", action: () => goToTreeStep(currentDataset.model.steps.length - 1) }
+        { label: "|<", title: "Ir al primer paso", action: () => goToStep(0) },
+        { label: "<", title: "Ir al paso anterior", action: () => goToStep(currentTreeStep - 1) },
+        { label: ">", title: "Ir al paso siguiente", action: () => goToStep(currentTreeStep + 1) },
+        { label: ">|", title: "Ir al ultimo paso", action: () => goToStep(getCurrentStepCount() - 1) }
     ];
 
     controls.forEach(control => {
@@ -473,6 +613,13 @@ function renderTreeStepButtons() {
         button.addEventListener("click", control.action);
         treeStepButtonsContainer.appendChild(button);
     });
+}
+
+function getCurrentStepCount() {
+    if (!currentDataset) return 0;
+    return isPruningPage
+        ? currentDataset.model.pruning.processSteps.length
+        : currentDataset.model.steps.length;
 }
 
 function renderStepValueTable(step) {
@@ -746,10 +893,28 @@ function createCell(text, options = {}) {
 }
 
 function renderProgressiveTree(maxStepNumber) {
+    renderTree({
+        root: currentDataset.model.root,
+        maxStepNumber,
+        currentNodeId: null,
+        progressive: true
+    });
+}
+
+function renderTreeSnapshot(root, currentNodeId = null) {
+    renderTree({
+        root,
+        maxStepNumber: Infinity,
+        currentNodeId,
+        progressive: false
+    });
+}
+
+function renderTree({ root, maxStepNumber, currentNodeId, progressive }) {
     destroyTreeZoom();
     clearElement(treeSvgContainer);
     const nodes = [];
-    collectVisibleNodes(currentDataset.model.root, maxStepNumber, nodes);
+    collectVisibleNodes(root, maxStepNumber, nodes, progressive);
     if (nodes.length === 0) return;
 
     const maxX = Math.max(...nodes.map(node => node.x)) + 80;
@@ -764,14 +929,14 @@ function renderProgressiveTree(maxStepNumber) {
 
     nodes.forEach(node => {
         node.children
-            .filter(child => child.stepNumber <= maxStepNumber)
+            .filter(child => !progressive || child.stepNumber <= maxStepNumber)
             .forEach(child => {
                 svg.appendChild(createTreeBranch(node, child));
             });
     });
 
     nodes.forEach(node => {
-        svg.appendChild(createTreeNodeGraphic(node, node.stepNumber === maxStepNumber));
+        svg.appendChild(createTreeNodeGraphic(node, node.stepNumber === maxStepNumber || node.id === currentNodeId));
     });
 
     const wrapper = document.createElement("div");
@@ -796,6 +961,11 @@ function renderProgressiveTree(maxStepNumber) {
 
 export function refreshTreeLayout() {
     if (!currentDataset) return;
+    if (isPruningPage) {
+        const step = currentDataset.model.pruning.processSteps[currentTreeStep];
+        renderTreeSnapshot(step.root, step.evaluation?.nodeId ?? null);
+        return;
+    }
     renderProgressiveTree(currentDataset.model.steps[currentTreeStep].stepNumber);
 }
 
@@ -1047,10 +1217,74 @@ function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
 
-function collectVisibleNodes(node, maxStepNumber, nodes) {
-    if (node.stepNumber > maxStepNumber) return;
+function collectVisibleNodes(node, maxStepNumber, nodes, progressive = true) {
+    if (progressive && node.stepNumber > maxStepNumber) return;
     nodes.push(node);
-    node.children.forEach(child => collectVisibleNodes(child, maxStepNumber, nodes));
+    node.children.forEach(child => collectVisibleNodes(child, maxStepNumber, nodes, progressive));
+}
+
+function findNodeInTree(root, nodeId) {
+    let found = null;
+    const visit = node => {
+        if (node.id === nodeId) {
+            found = node;
+            return;
+        }
+        node.children.forEach(visit);
+    };
+    visit(root);
+    return found;
+}
+
+function cloneSubtreeForPreview(node) {
+    const clone = {
+        ...node,
+        parent: null,
+        classCounts: { ...node.classCounts },
+        dataRowIndexes: [...node.dataRowIndexes],
+        branchCondition: node.branchCondition ? { ...node.branchCondition } : null,
+        children: []
+    };
+
+    clone.children = node.children.map(child => {
+        const childClone = {
+            ...child,
+            parent: clone,
+            classCounts: { ...child.classCounts },
+            dataRowIndexes: [...child.dataRowIndexes],
+            branchCondition: child.branchCondition ? { ...child.branchCondition } : null,
+            children: []
+        };
+        return childClone;
+    });
+
+    return { root: clone };
+}
+
+function assignPreviewTreePositions(root) {
+    let leafIndex = 0;
+    const spacingX = 112;
+    const spacingY = 128;
+
+    const assign = node => {
+        node.y = 60 + node.depth * spacingY;
+        if (node.children.length === 0) {
+            node.x = 56 + leafIndex * spacingX;
+            leafIndex++;
+            return node.x;
+        }
+        const childXs = node.children.map(assign);
+        node.x = (Math.min(...childXs) + Math.max(...childXs)) / 2;
+        return node.x;
+    };
+
+    const resetDepth = (node, depth) => {
+        node.depth = depth;
+        node.children.forEach(child => resetDepth(child, depth + 1));
+    };
+
+    resetDepth(root, 0);
+    assign(root);
 }
 
 function createTreeBranch(parent, child) {
@@ -1086,7 +1320,7 @@ function createTreeNodeGraphic(node, isCurrent) {
     const x = node.x - width / 2;
     const y = node.y - height / 2;
     const boxClass = node.isLeaf
-        ? `chosen-node-svg-leaf-box ${node.stopReason === "pure" ? "chosen-node-svg-leaf-defined" : "chosen-node-svg-leaf-pending"}`
+        ? `chosen-node-svg-leaf-box ${["pure", "pruned"].includes(node.stopReason) ? "chosen-node-svg-leaf-defined" : "chosen-node-svg-leaf-pending"}`
         : "chosen-node-svg-shell";
 
     const fullTitle = node.isLeaf

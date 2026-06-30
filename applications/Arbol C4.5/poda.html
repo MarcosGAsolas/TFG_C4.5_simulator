@@ -102,96 +102,108 @@
 
                         <p class="card-text fw-bold">Fórmula de error estimado:</p>
                         <p class="card-text fw-light">
+                            Para cada hoja \(i\) del subárbol, si llegan \(N_i\) registros y predice incorrectamente
+                            \(E_i\) de ellos, su error estimado individual es:
+                        </p>
+                        <p class="card-text fw-light">
                             \[
-                                e = \frac{E + 0.5}{N}
+                                Error_{hoja_i} = \frac{E_i + 0.5}{N_i}
+                            \]
+                        </p>
+                        <p class="card-text fw-light">
+                            El error estimado total del subárbol se obtiene mediante una media ponderada. Cada hoja
+                            contribuye según la proporción de registros que recibe respecto al total \(N\):
+                        </p>
+                        <p class="card-text fw-light">
+                            \[
+                                Error_{subarbol} =
+                                \sum_{i=1}^{L}
+                                \frac{N_i}{N}
+                                \cdot
+                                Error_{hoja_i}
+                            \]
+                        </p>
+                        <p class="card-text fw-light">
+                            De forma equivalente, usando la corrección simplificada de \(0.5\) por hoja:
+                        </p>
+                        <p class="card-text fw-light">
+                            \[
+                                Error_{subarbol} =
+                                \frac{\sum_{i=1}^{L} E_i + 0.5 \cdot L}{N}
+                            \]
+                        </p>
+                        <p class="card-text fw-light">
+                            Si el subárbol se sustituye por una única hoja, el error estimado de esa hoja simplificada es:
+                        </p>
+                        <p class="card-text fw-light">
+                            \[
+                                Error_{hoja} = \frac{E_{hoja} + 0.5}{N}
                             \]
                         </p>
                         <ul class="card-text fw-light">
-                            <li>\(E\) es el número de errores del nodo o subárbol evaluado.</li>
-                            <li>\(N\) es el número de instancias que llegan a ese nodo.</li>
-                            <li>El término \(0.5\) suaviza la estimación del error.</li>
-                        </ul>
-
-                        <p class="card-text fw-bold">Algoritmo:</p>
-                        <ol>
-                            <li class="card-text fw-light">Recorrer el árbol desde las hojas hacia la raíz.</li>
-                            <li class="card-text fw-light">Para cada nodo interno, calcular el error estimado del subárbol completo.</li>
-                            <li class="card-text fw-light">Calcular el error estimado si ese subárbol se sustituye por una única hoja con la clase mayoritaria del nodo.</li>
-                            <li class="card-text fw-light">Comparar ambas alternativas teniendo en cuenta la complejidad del subárbol.</li>
-                            <li class="card-text fw-light">Si la hoja simplificada no empeora el error estimado, reemplazar el subárbol por esa hoja.</li>
-                            <li class="card-text fw-light">Repetir el proceso hasta revisar todos los nodos candidatos.</li>
-                            <li class="card-text fw-light">Devolver el árbol resultante tras eliminar las ramas innecesarias.</li>
-                        </ol>
-                    </div>
-                    <div class="card-body d-none">
-                        <p class="card-text fw-bold">Entrada:</p>
-                        <ul class="card-text fw-light">
-                            <li>Dataset \(S\)</li>
-                            <li>Conjunto de atributos \(A\)</li>
-                        </ul>
-
-                        <p class="card-text fw-bold">Salida:</p>
-                        <ul class="card-text fw-light">
-                            <li>Árbol de decisión \(T\)</li>
+                            <li>\(L\) es el número de hojas del subárbol evaluado.</li>
+                            <li>\(N_i\) es el número de registros que llegan a la hoja \(i\).</li>
+                            <li>\(N\) es el número total de registros que llegan al nodo evaluado.</li>
+                            <li>\(E_i\) representa los errores reales de la hoja \(i\).</li>
+                            <li>\(E_{hoja}\) son los errores reales al sustituir el subárbol por una única hoja.</li>
+                            <li>La media ponderada muestra la contribución de cada hoja al error final del subárbol.</li>
                         </ul>
 
                         <p class="card-text fw-bold">Algoritmo:</p>
                         <ol>
                             <li class="card-text fw-light">
-                                Ejecutar \(\operatorname{C4.5}(S, A)\), donde \(S\) representa el nodo actual del árbol \(T\).
+                                Recorrer el árbol desde las hojas hacia la raíz, evaluando primero los nodos más profundos.
                             </li>
                             <li class="card-text fw-light">
-                                Comprobar si \(S = \varnothing\):
-                                <ul>
-                                    <li>Si se cumple, crear una hoja con la clase mayoritaria del nodo anterior y devolverla como \(T\).</li>
-                                </ul>
+                                Para cada nodo interno, identificar todas las hojas que forman su subárbol y calcular
+                                los registros que llegan a cada una de ellas.
                             </li>
                             <li class="card-text fw-light">
-                                Comprobar si todos los ejemplos de \(S\) pertenecen a la misma clase \(c\):
-                                <ul>
-                                    <li>Si se cumple, crear una hoja con la etiqueta \(c\) y devolverla como \(T\).</li>
-                                </ul>
+                                Para cada hoja \(i\) del subárbol, determinar la clase mayoritaria que predice y calcular
+                                sus errores reales \(E_i\).
                             </li>
                             <li class="card-text fw-light">
-                                Comprobar si el conjunto de atributos \(A\) está vacío:
-                                <ul>
-                                    <li>Si se cumple, crear una hoja con la clase mayoritaria de \(S\) y devolverla como \(T\).</li>
-                                </ul>
+                                Calcular el error estimado individual de cada hoja con
+                                \(Error_{hoja_i} = \frac{E_i + 0.5}{N_i}\).
                             </li>
                             <li class="card-text fw-light">
-                                Para cada atributo \(a \in A\), calcular sus posibles particiones:
-                                <ul>
-                                    <li>Si \(a\) es continuo, generar umbrales \(u\) y dividir \(S\) en \(S_{\leq u}\) y \(S_{>u}\).</li>
-                                    <li>Si \(a\) es categórico, dividir \(S\) según los valores de \(a\).</li>
-                                </ul>
+                                Calcular el error estimado total del subárbol mediante la media ponderada
+                                \(Error_{subarbol} = \sum_{i=1}^{L} \frac{N_i}{N} \cdot Error_{hoja_i}\).
                             </li>
                             <li class="card-text fw-light">
-                                Para cada partición, calcular \(\operatorname{Gain}(S,a)\), \(\operatorname{SplitInfo}(S,a)\) y \(\operatorname{GainRatio}(S,a)\).
+                                De forma equivalente, expresar ese mismo error como
+                                \(Error_{subarbol} = \frac{\sum_{i=1}^{L} E_i + 0.5 \cdot L}{N}\).
                             </li>
                             <li class="card-text fw-light">
-                                Seleccionar \(a_{\text{mejor}}\) como el atributo con mayor \(\operatorname{GainRatio}\). Si el atributo es continuo, conservar también el mejor umbral \(u_{\text{mejor}}\).
+                                Calcular la clase mayoritaria entre todos los registros que llegan al nodo interno. Esta
+                                será la clase que predeciría el nodo si se sustituyera todo el subárbol por una única hoja.
                             </li>
                             <li class="card-text fw-light">
-                                Crear un nodo de decisión con \(a_{\text{mejor}}\).
+                                Calcular los errores reales de esa hoja simplificada:
+                                \(E_{hoja} = N - \max(\text{cantidad de registros por clase})\).
                             </li>
                             <li class="card-text fw-light">
-                                Si \(a_{\text{mejor}}\) es continuo, crear dos ramas:
-                                <ul>
-                                    <li><span class="fw-bold">Rama izquierda:</span> \(\operatorname{C4.5}(S_{\leq u_{\text{mejor}}}, A)\)</li>
-                                    <li><span class="fw-bold">Rama derecha:</span> \(\operatorname{C4.5}(S_{>u_{\text{mejor}}}, A)\)</li>
-                                </ul>
+                                Calcular el error estimado de la hoja simplificada con
+                                \(Error_{hoja} = \frac{E_{hoja} + 0.5}{N}\).
                             </li>
                             <li class="card-text fw-light">
-                                Si \(a_{\text{mejor}}\) es categórico, para cada valor \(v \in \operatorname{Values}(a_{\text{mejor}})\), crear \(S_v\):
-                                <ul>
-                                    <li>Si \(S_v = \varnothing\), añadir una hoja con la clase mayoritaria de \(S\).</li>
-                                    <li>Si \(S_v \neq \varnothing\), añadir como rama \(\operatorname{C4.5}(S_v, A - \{a_{\text{mejor}}\})\).</li>
-                                </ul>
+                                Comparar ambas alternativas: si \(Error_{hoja} \leq Error_{subarbol}\), el subárbol
+                                se poda y el nodo interno se reemplaza por una hoja que predice la clase mayoritaria.
+                                Si \(Error_{hoja} > Error_{subarbol}\), el subárbol se conserva.
                             </li>
                             <li class="card-text fw-light">
-                                Aplicar poda posterior al árbol generado y devolver el nodo de decisión.
+                                Repetir el proceso hasta revisar todos los nodos internos candidatos.
+                            </li>
+                            <li class="card-text fw-light">
+                                Devolver el árbol resultante tras eliminar las ramas innecesarias.
                             </li>
                         </ol>
+                        <p class="card-text fw-light mb-0">
+                            Por ejemplo, si un nodo tiene tres hojas, en la expresión equivalente la corrección por
+                            complejidad del subárbol será \(0.5 \cdot 3 = 1.5\). Por tanto, aunque el subárbol
+                            cometa menos errores reales que una única hoja, deberá compensar también la penalización
+                            asociada a mantener sus tres hojas.
+                        </p>
                     </div>
                 </div>
             </div>

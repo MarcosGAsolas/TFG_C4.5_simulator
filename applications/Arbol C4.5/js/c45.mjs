@@ -32,8 +32,9 @@ export function buildC45FromRows(rows) {
 
     assignTreePositions(root);
     const steps = collectSteps(root);
+    const pruning = pruneC45Tree(root, classLabels);
 
-    return { root, steps, headers, classLabels };
+    return { root, steps, headers, classLabels, pruning };
 }
 
 /**
@@ -393,6 +394,187 @@ function collectSteps(root) {
         });
     });
     return steps;
+}
+
+function pruneC45Tree(root, classLabels) {
+    const evaluations = [];
+    const prunedRoot = pruneNode(cloneTree(root, null), evaluations);
+    assignTreePositions(prunedRoot);
+    const steps = collectSteps(prunedRoot);
+    const processSteps = buildPruningProcessSteps(root, evaluations);
+    return { root: prunedRoot, steps, evaluations, processSteps, classLabels };
+}
+
+function pruneNode(node, evaluations) {
+    if (node.isLeaf || node.children.length === 0) {
+        return node;
+    }
+
+    node.children = node.children.map(child => {
+        const prunedChild = pruneNode(child, evaluations);
+        prunedChild.parent = node;
+        return prunedChild;
+    });
+
+    const evaluation = createPruningEvaluation(node);
+    if (!evaluation) return node;
+    evaluations.push(evaluation);
+
+    if (!evaluation.pruned) return node;
+
+    return {
+        ...node,
+        attribute: null,
+        attributeType: null,
+        threshold: null,
+        gain: 0,
+        splitInfo: 0,
+        gainRatio: 0,
+        conditionalEntropy: 0,
+        evaluation: null,
+        isLeaf: true,
+        stopReason: "pruned",
+        children: []
+    };
+}
+
+function cloneTree(node, parent) {
+    const clone = {
+        ...node,
+        parent,
+        classCounts: { ...node.classCounts },
+        dataRowIndexes: [...node.dataRowIndexes],
+        branchCondition: node.branchCondition ? { ...node.branchCondition } : null,
+        children: []
+    };
+
+    clone.children = node.children.map(child => cloneTree(child, clone));
+    return clone;
+}
+
+function collectLeaves(node) {
+    const leaves = [];
+    walkTree(node, current => {
+        if (current.isLeaf || current.children.length === 0) {
+            leaves.push(current);
+        }
+    });
+    return leaves;
+}
+
+function createPruningLeafStats(leaf, totalRows) {
+    const errors = leaf.n - (leaf.classCounts[leaf.predictedLabel] || 0);
+    const estimatedError = leaf.n === 0 ? 0 : (errors + 0.5) / leaf.n;
+    return {
+        nodeId: leaf.id,
+        dataRowIndexes: [...leaf.dataRowIndexes],
+        predictedLabel: leaf.predictedLabel,
+        n: leaf.n,
+        errors,
+        estimatedError,
+        weight: totalRows === 0 ? 0 : leaf.n / totalRows
+    };
+}
+
+function createPruningEvaluation(node) {
+    const leaves = collectLeaves(node);
+    if (leaves.length <= 1 || node.n === 0) return null;
+
+    const leafStats = leaves.map(leaf => createPruningLeafStats(leaf, node.n));
+    const subtreeErrors = leafStats.reduce((sum, stats) => sum + stats.errors, 0);
+    const subtreeEstimatedError = leafStats.reduce((sum, stats) => {
+        return sum + stats.weight * stats.estimatedError;
+    }, 0);
+    const simplifiedLeafErrors = node.n - (node.classCounts[node.predictedLabel] || 0);
+    const simplifiedLeafEstimatedError = (simplifiedLeafErrors + 0.5) / node.n;
+    const shouldPrune = simplifiedLeafEstimatedError <= subtreeEstimatedError + EPSILON;
+
+    return {
+        nodeId: node.id,
+        dataRowIndexes: [...node.dataRowIndexes],
+        predictedLabel: node.predictedLabel,
+        leafCount: leaves.length,
+        subtreeErrors,
+        subtreeEstimatedError,
+        simplifiedLeafErrors,
+        simplifiedLeafEstimatedError,
+        pruned: shouldPrune,
+        leafStats
+    };
+}
+
+function buildPruningProcessSteps(root, evaluations) {
+    const workingRoot = cloneTree(root, null);
+    const processSteps = [createPruningProcessStep({
+        root: workingRoot,
+        title: "Paso 1: Arbol completo para poda",
+        evaluation: null,
+        action: "initial"
+    })];
+
+    evaluations.forEach((evaluation, index) => {
+        processSteps.push(createPruningProcessStep({
+            root: workingRoot,
+            title: `Paso ${processSteps.length + 1}: Evaluar subarbol del nodo ${evaluation.nodeId}`,
+            evaluation,
+            action: "evaluate"
+        }));
+
+        const node = findNodeById(workingRoot, evaluation.nodeId);
+        if (node && evaluation.pruned) {
+            convertNodeToPrunedLeaf(node);
+            processSteps.push(createPruningProcessStep({
+                root: workingRoot,
+                title: `Paso ${processSteps.length + 1}: Podar subarbol del nodo ${evaluation.nodeId}`,
+                evaluation,
+                action: "pruned"
+            }));
+        } else {
+            processSteps.push(createPruningProcessStep({
+                root: workingRoot,
+                title: `Paso ${processSteps.length + 1}: Conservar subarbol del nodo ${evaluation.nodeId}`,
+                evaluation,
+                action: "kept"
+            }));
+        }
+    });
+
+    return processSteps;
+}
+
+function createPruningProcessStep({ root, title, evaluation, action }) {
+    const snapshotRoot = cloneTree(root, null);
+    assignTreePositions(snapshotRoot);
+    const snapshotSteps = collectSteps(snapshotRoot);
+    return {
+        title,
+        action,
+        evaluation,
+        root: snapshotRoot,
+        steps: snapshotSteps
+    };
+}
+
+function findNodeById(root, nodeId) {
+    let found = null;
+    walkTree(root, node => {
+        if (node.id === nodeId) found = node;
+    });
+    return found;
+}
+
+function convertNodeToPrunedLeaf(node) {
+    node.attribute = null;
+    node.attributeType = null;
+    node.threshold = null;
+    node.gain = 0;
+    node.splitInfo = 0;
+    node.gainRatio = 0;
+    node.conditionalEntropy = 0;
+    node.evaluation = null;
+    node.isLeaf = true;
+    node.stopReason = "pruned";
+    node.children = [];
 }
 
 function getActiveConditions(node) {
