@@ -430,6 +430,21 @@ main.container {
     transition: none;
 }
 
+.pruning-calculation-view {
+    padding: 0.5rem;
+}
+
+.pruning-subtree-preview {
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    overflow: auto;
+}
+
+.pruning-subtree-svg {
+    width: min(100%, 42rem);
+    min-width: 28rem;
+}
+
 .c45-current-node {
     stroke: #dc3545 !important;
     stroke-width: 4 !important;
