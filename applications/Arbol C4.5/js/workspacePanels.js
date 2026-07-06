@@ -32,7 +32,7 @@ export function initWorkspacePanels(onLayoutChange) {
     Object.entries(panelConfig).forEach(([panelName, config]) => {
         const button = document.querySelector(`[data-toggle-panel="${panelName}"]`);
         if (!button) return;
-        button.addEventListener("click", () => togglePanel(workspace, panelName, onLayoutChange));
+        button.addEventListener("click", () => togglePanel(workspace, panelName));
         updateButton(button, config, false);
     });
 
@@ -43,7 +43,7 @@ export function initWorkspacePanels(onLayoutChange) {
     });
 }
 
-function togglePanel(workspace, panelName, onLayoutChange) {
+function togglePanel(workspace, panelName) {
     const config = panelConfig[panelName];
     const panel = document.getElementById(config.panelId);
     const button = document.querySelector(`[data-toggle-panel="${panelName}"]`);
@@ -57,7 +57,6 @@ function togglePanel(workspace, panelName, onLayoutChange) {
 
     workspace.style.setProperty(config.variableName, nowCollapsed ? "52px" : config.expandedSize);
     updateButton(button, config, nowCollapsed);
-    onLayoutChange?.();
 }
 
 function getExpandedPanelsCount() {

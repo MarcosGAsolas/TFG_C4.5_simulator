@@ -17,6 +17,7 @@ const dataInfoContainer = document.getElementById("dataInfoContainer");
 const currentDatasetSpan = document.getElementById("currentDatasetSpan");
 const datasetCardText = document.getElementById("datasetCardText");
 const datasetCardLink = document.getElementById("datasetCardLink");
+const criterionInputs = Array.from(document.querySelectorAll('input[name="treeCriterion"]'));
 
 const exampleDatasets = {
     "Leads inmobiliaria": "datasets/leads_inmobiliaria_c45_mixto_booleano_45.csv",
@@ -45,29 +46,34 @@ clearDatasetButton.addEventListener("click", clearDataset);
 selectExampleDataset.addEventListener("change", event => {
     loadExampleDataset(event.target.value);
 });
-initWorkspacePanels(refreshTreeLayout);
+criterionInputs.forEach(input => {
+    input.addEventListener("change", () => {
+        if (!currentDataset) return;
+        setDataset({
+            name: currentDataset.name,
+            rows: currentDataset.rows,
+            isExample: currentDataset.isExample,
+            criterion: getSelectedTreeCriterion()
+        });
+    });
+});
+initWorkspacePanels(syncTreeLayout);
 
 if ("ResizeObserver" in window && treePanel) {
     let lastTreeWidth = 0;
-    let lastTreeHeight = 0;
-    let pendingRefresh = false;
+    let resizeSyncFrame = 0;
 
     const treePanelObserver = new ResizeObserver(([entry]) => {
-        const { width, height } = entry.contentRect;
+        const { width } = entry.contentRect;
         const roundedWidth = Math.round(width);
-        const roundedHeight = Math.round(height);
 
-        if (roundedWidth === lastTreeWidth && roundedHeight === lastTreeHeight) return;
+        if (roundedWidth === lastTreeWidth) return;
         lastTreeWidth = roundedWidth;
-        lastTreeHeight = roundedHeight;
 
-        if (roundedWidth < 120 || roundedHeight < 120 || pendingRefresh) return;
+        if (roundedWidth < 120) return;
 
-        pendingRefresh = true;
-        requestAnimationFrame(() => {
-            pendingRefresh = false;
-            refreshTreeLayout();
-        });
+        window.cancelAnimationFrame(resizeSyncFrame);
+        resizeSyncFrame = window.requestAnimationFrame(syncTreeLayout);
     });
     treePanelObserver.observe(treePanel);
 }
@@ -93,7 +99,8 @@ async function loadExampleDataset(name) {
         setDataset({
             name,
             rows,
-            isExample: true
+            isExample: true,
+            criterion: getSelectedTreeCriterion()
         });
     } catch (error) {
         showUploadValidationErrors([error.message]);
@@ -109,7 +116,15 @@ function handleCsvUpload(event) {
 
     const reader = new FileReader();
     reader.onload = () => {
-        const rows = parseCsv(String(reader.result));
+        const content = String(reader.result);
+        const delimiterValidation = validateCsvCommaSeparators(content);
+        if (!delimiterValidation.isValid) {
+            showUploadValidationErrors(delimiterValidation.messages);
+            setDataset(null);
+            return;
+        }
+
+        const rows = parseCsv(content);
 
         const validation = validateC45Rows(rows);
         if (!validation.isValid) {
@@ -121,15 +136,84 @@ function handleCsvUpload(event) {
         setDataset({
             name: file.name,
             rows,
-            isExample: false
+            isExample: false,
+            criterion: getSelectedTreeCriterion()
         });
         clearUploadValidationStatus();
+        closeUploadCsvModal();
+        csvFileInput.value = "";
     };
     reader.onerror = () => {
         showUploadValidationErrors(["No se ha podido leer el archivo CSV."]);
         setDataset(null);
     };
     reader.readAsText(file);
+}
+
+function validateCsvCommaSeparators(content) {
+    const lines = content
+        .split(/\r\n|\n|\r/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    if (lines.length === 0 || lines.some(line => line.includes(","))) {
+        return { isValid: true, messages: [] };
+    }
+
+    const hasSemicolonColumns = hasRepeatedDelimiterStructure(lines, ";");
+    if (hasSemicolonColumns) {
+        return {
+            isValid: false,
+            messages: ["El archivo CSV utiliza punto y coma (;), pero esta aplicación requiere comas (,) para separar los valores de cada fila."]
+        };
+    }
+
+    const hasTabColumns = hasRepeatedDelimiterStructure(lines, "\t");
+    if (hasTabColumns) {
+        return {
+            isValid: false,
+            messages: ["El archivo CSV utiliza tabulaciones, pero esta aplicación requiere comas (,) para separar los valores de cada fila."]
+        };
+    }
+
+    const whitespaceRows = lines.map(line => line.split(/\s+/).filter(Boolean));
+    const whitespaceColumnCounts = whitespaceRows.map(row => row.length);
+    const looksLikeWhitespaceTable = whitespaceColumnCounts.length === 1
+        ? whitespaceColumnCounts[0] > 1
+        : whitespaceColumnCounts.every(count => count === whitespaceColumnCounts[0] && count > 1)
+            && hasMostlyStructuredWhitespaceValues(whitespaceRows);
+    if (looksLikeWhitespaceTable) {
+        return {
+            isValid: false,
+            messages: ["El archivo CSV debe utilizar comas (,) para separar los valores de cada fila."]
+        };
+    }
+
+    return { isValid: true, messages: [] };
+}
+
+function hasRepeatedDelimiterStructure(lines, delimiter) {
+    const counts = lines
+        .map(line => line.split(delimiter).length)
+        .filter(count => count > 1);
+    return counts.length >= 2 && new Set(counts).size <= 2;
+}
+
+function hasMostlyStructuredWhitespaceValues(rows) {
+    const values = rows.flat();
+    const structuredValues = values.filter(value => (
+        /^-?\d+(?:[.,]\d+)?$/.test(value)
+        || /^(true|false|si|sí|no)$/i.test(value)
+    ));
+    return values.length > 0 && structuredValues.length / values.length >= 0.6;
+}
+
+function closeUploadCsvModal() {
+    const modalElement = document.getElementById("uploadCsvModal");
+    if (!modalElement || !window.bootstrap?.Modal) return;
+
+    const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+    modal.hide();
 }
 
 function parseCsv(content) {
@@ -173,8 +257,9 @@ function parseCsv(content) {
 }
 
 function setDataset(dataset) {
+    treeZoomScale = 1;
     currentDataset = dataset
-        ? { ...dataset, model: buildC45FromRows(dataset.rows) }
+        ? { ...dataset, criterion: dataset.criterion || "gainRatio", model: buildC45FromRows(dataset.rows, { criterion: dataset.criterion || "gainRatio" }) }
         : null;
     clearDatasetButton.disabled = !dataset;
 
@@ -197,7 +282,12 @@ function setDataset(dataset) {
     }
 }
 
+function getSelectedTreeCriterion() {
+    return criterionInputs.find(input => input.checked)?.value === "informationGain" ? "informationGain" : "gainRatio";
+}
+
 function clearDataset() {
+    treeZoomScale = 1;
     currentDataset = null;
     selectExampleDataset.selectedIndex = 0;
     csvFileInput.value = "";
@@ -212,15 +302,23 @@ function clearDataset() {
 function renderDatasetInfo(dataset) {
     dataInfoContainer.classList.remove("d-none");
     currentDatasetSpan.textContent = dataset.name;
+    clearElement(datasetCardText);
+
+    if (dataset.criterion === "informationGain") {
+        const criterionNotice = document.createElement("p");
+        criterionNotice.classList.add("alert", "alert-warning", "py-2", "px-3", "mb-2");
+        criterionNotice.textContent = "El algoritmo C4.5 original elige los nodos con gain ratio. En esta ejecución has elegido calcular el nodo seleccionado con ganancia de información.";
+        datasetCardText.appendChild(criterionNotice);
+    }
 
     if (dataset.isExample) {
-        datasetCardText.textContent = getDataInfo(dataset.name) || "";
+        datasetCardText.appendChild(document.createTextNode(getDataInfo(dataset.name) || ""));
         datasetCardLink.href = getDataLink(dataset.name) || "#";
         datasetCardLink.classList.remove("d-none");
         return;
     }
 
-    datasetCardText.textContent = "Dataset cargado desde un archivo CSV local.";
+    datasetCardText.appendChild(document.createTextNode("Dataset cargado desde un archivo CSV local."));
     datasetCardLink.classList.add("d-none");
 }
 
@@ -447,7 +545,7 @@ function renderPruningValuePanel(step) {
 
     const message = document.createElement("p");
     message.classList.add("text-body-secondary", "text-center", "mb-0", "p-3");
-    message.textContent = "La poda parte del arbol completo. Avanza paso a paso para evaluar los subarboles candidatos.";
+    message.textContent = "La poda parte del árbol completo. Avanza paso a paso para evaluar los subárboles candidatos.";
     treeStepContainer.appendChild(message);
 }
 
@@ -457,7 +555,7 @@ function createPruningCalculationView(step) {
 
     const caption = document.createElement("p");
     caption.classList.add("tree-results-caption", "mb-2");
-    caption.textContent = `Subarbol evaluado del nodo ${step.evaluation.nodeId}`;
+    caption.textContent = `Subárbol evaluado del nodo ${step.evaluation.nodeId}`;
     wrapper.appendChild(caption);
 
     const subTreeRoot = findNodeInTree(step.root, step.evaluation.nodeId);
@@ -469,16 +567,16 @@ function createPruningCalculationView(step) {
     summary.classList.add("small", "text-body-secondary", "mt-2", "mb-2", "text-center");
     if (step.action === "evaluate") {
         summary.textContent = step.evaluation.pruned
-            ? "La comparacion indica que este subarbol se podara en el siguiente paso."
-            : "La comparacion indica que este subarbol se conservara en el siguiente paso.";
+            ? "La comparación indica que este subárbol se podará en el siguiente paso."
+            : "La comparación indica que este subárbol se conservará en el siguiente paso.";
     } else if (step.action === "pruned") {
         summary.textContent = `Poda aplicada: el nodo ${step.evaluation.nodeId} queda como hoja y predice la clase ${step.evaluation.predictedLabel}.`;
     } else {
-        summary.textContent = `Decision aplicada: el subarbol del nodo ${step.evaluation.nodeId} se conserva.`;
+        summary.textContent = `Decisión aplicada: el subárbol del nodo ${step.evaluation.nodeId} se conserva.`;
     }
     wrapper.appendChild(summary);
 
-    wrapper.appendChild(createPruningCalculationTable(step.evaluation));
+    wrapper.appendChild(createPruningCalculationTable(step.evaluation, subTreeRoot));
     return wrapper;
 }
 
@@ -487,14 +585,16 @@ function createPruningSubtreeSvg(subTreeRoot, currentNodeId) {
     assignPreviewTreePositions(nodes.root);
     const visibleNodes = [];
     collectVisibleNodes(nodes.root, Infinity, visibleNodes, false);
-    const maxX = Math.max(...visibleNodes.map(node => node.x)) + 80;
+    const previewWidth = Math.max(360, Math.max(...visibleNodes.map(node => node.x)) + 88);
+    centerPreviewNodes(visibleNodes, previewWidth);
+    const maxX = Math.max(...visibleNodes.map(node => node.x)) + 88;
     const maxY = Math.max(...visibleNodes.map(node => node.y)) + 70;
 
     const svg = createSvgElement("svg", {
         class: "chosen-node-svg c45-tree-svg pruning-subtree-svg",
-        viewBox: `0 0 ${Math.max(360, maxX)} ${Math.max(180, maxY)}`,
+        viewBox: `0 0 ${Math.max(previewWidth, maxX)} ${Math.max(180, maxY)}`,
         role: "img",
-        "aria-label": `Subarbol evaluado del nodo ${currentNodeId}`
+        "aria-label": `Subárbol evaluado del nodo ${currentNodeId}`
     });
 
     visibleNodes.forEach(node => {
@@ -510,9 +610,16 @@ function createPruningSubtreeSvg(subTreeRoot, currentNodeId) {
     return preview;
 }
 
-function createPruningCalculationTable(evaluation) {
+function createPruningCalculationTable(evaluation, subTreeRoot) {
     const table = document.createElement("table");
     table.classList.add("table", "caption-top", "table-bordered", "align-middle", "text-center", "tree-node-values-table");
+    const headerTooltips = {
+        Elemento: "Elemento del subárbol evaluado que se está calculando.",
+        N: "N: número de registros que llegan a este elemento.",
+        Errores: "Errores reales: registros cuya clase no coincide con la clase predicha.",
+        Peso: "Peso = N_i / N, donde N_i son los registros del elemento y N los registros del nodo evaluado.",
+        "Error estimado": "Hoja: (E + 0.5) / N. Subárbol: suma ponderada de los errores estimados de sus hojas."
+    };
 
     const caption = document.createElement("caption");
     caption.classList.add("tree-results-caption");
@@ -525,50 +632,139 @@ function createPruningCalculationTable(evaluation) {
         const th = document.createElement("th");
         th.scope = "col";
         th.textContent = text;
+        th.title = headerTooltips[text] || "";
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-    evaluation.leafStats.forEach(leaf => {
+    createVisiblePruningRows(evaluation, subTreeRoot).forEach(item => {
         const tr = document.createElement("tr");
-        tr.appendChild(createCell(`Hoja ${leaf.nodeId} -> ${leaf.predictedLabel}`));
-        tr.appendChild(createCell(String(leaf.n)));
-        tr.appendChild(createCell(String(leaf.errors)));
-        tr.appendChild(createCell(formatNumber(leaf.weight)));
-        tr.appendChild(createCell(formatNumber(leaf.estimatedError)));
+        tr.appendChild(createCell(item.label, { title: item.elementTooltip }));
+        tr.appendChild(createCell(String(item.n), { title: `${item.n}: registros que llegan a este elemento.` }));
+        tr.appendChild(createCell(String(item.errors), { title: item.errorsTooltip }));
+        tr.appendChild(createCell(formatNumber(item.weight), { title: `Peso = ${item.n} / ${evaluation.dataRowIndexes.length} = ${formatNumber(item.weight)}` }));
+        tr.appendChild(createCell(formatNumber(item.estimatedError), { title: item.errorTooltip }));
         tbody.appendChild(tr);
     });
 
     const subtreeRow = document.createElement("tr");
     subtreeRow.classList.add("table-warning");
-    subtreeRow.appendChild(createCell(`Subarbol nodo ${evaluation.nodeId}`, { classes: ["fw-semibold"] }));
-    subtreeRow.appendChild(createCell(String(evaluation.dataRowIndexes.length)));
-    subtreeRow.appendChild(createCell(String(evaluation.subtreeErrors)));
-    subtreeRow.appendChild(createCell("1.00"));
-    subtreeRow.appendChild(createCell(formatNumber(evaluation.subtreeEstimatedError), { classes: ["fw-semibold"] }));
+    const subtreeSourceTooltip = createSubtreeSourceTooltip(evaluation);
+    subtreeRow.appendChild(createCell(`Subárbol nodo ${evaluation.nodeId}`, { classes: ["fw-semibold"], title: subtreeSourceTooltip }));
+    subtreeRow.appendChild(createCell(String(evaluation.dataRowIndexes.length), { title: `${evaluation.dataRowIndexes.length}: registros que llegan al nodo evaluado. Se reparten entre: ${evaluation.leafStats.map(item => `hoja ${item.nodeId} (${item.n})`).join(", ")}.` }));
+    subtreeRow.appendChild(createCell(String(evaluation.subtreeErrors), { title: `E_subárbol usa las hojas ${evaluation.leafStats.map(item => item.nodeId).join(", ")}: ${evaluation.leafStats.map(item => item.errors).join(" + ")} = ${evaluation.subtreeErrors}` }));
+    subtreeRow.appendChild(createCell("1.00", { title: `El subárbol completo agrupa todos los registros del nodo ${evaluation.nodeId}: ${evaluation.dataRowIndexes.length}/${evaluation.dataRowIndexes.length} = 1.00.` }));
+    subtreeRow.appendChild(createCell(formatNumber(evaluation.subtreeEstimatedError), {
+        classes: ["fw-semibold"],
+        title: createSubtreeErrorTooltip(evaluation)
+    }));
     tbody.appendChild(subtreeRow);
 
     const leafRow = document.createElement("tr");
     leafRow.classList.add(evaluation.pruned ? "table-success" : "table-secondary");
-    leafRow.appendChild(createCell(`Hoja simplificada -> ${evaluation.predictedLabel}`, { classes: ["fw-semibold"] }));
-    leafRow.appendChild(createCell(String(evaluation.dataRowIndexes.length)));
-    leafRow.appendChild(createCell(String(evaluation.simplifiedLeafErrors)));
-    leafRow.appendChild(createCell("1.00"));
-    leafRow.appendChild(createCell(formatNumber(evaluation.simplifiedLeafEstimatedError), { classes: ["fw-semibold"] }));
+    leafRow.appendChild(createCell(`Hoja simplificada -> ${evaluation.predictedLabel}`, { classes: ["fw-semibold"], title: "Alternativa de poda: sustituir todo el subárbol por una única hoja con la clase mayoritaria." }));
+    leafRow.appendChild(createCell(String(evaluation.dataRowIndexes.length), { title: `${evaluation.dataRowIndexes.length}: registros que llegarian a la hoja simplificada.` }));
+    leafRow.appendChild(createCell(String(evaluation.simplifiedLeafErrors), { title: `E_hoja = ${evaluation.dataRowIndexes.length} - ${evaluation.dataRowIndexes.length - evaluation.simplifiedLeafErrors} = ${evaluation.simplifiedLeafErrors}` }));
+    leafRow.appendChild(createCell("1.00", { title: "La hoja simplificada representa el 100% de los registros del nodo evaluado." }));
+    leafRow.appendChild(createCell(formatNumber(evaluation.simplifiedLeafEstimatedError), {
+        classes: ["fw-semibold"],
+        title: `Error_hoja = (${evaluation.simplifiedLeafErrors} + 0.5) / ${evaluation.dataRowIndexes.length} = ${formatNumber(evaluation.simplifiedLeafEstimatedError)}`
+    }));
     tbody.appendChild(leafRow);
 
     const decisionRow = document.createElement("tr");
     const decisionCell = createCell(evaluation.pruned
-        ? "Decision: podar el subarbol"
-        : "Decision: conservar el subarbol", { classes: ["fw-bold"] });
+        ? "Decisión: podar el subárbol"
+        : "Decisión: conservar el subárbol", { classes: ["fw-bold"] });
     decisionCell.colSpan = 5;
     decisionRow.appendChild(decisionCell);
     tbody.appendChild(decisionRow);
 
     table.appendChild(tbody);
     return table;
+}
+
+function createSubtreeErrorTooltip(evaluation) {
+    const weightedTerms = evaluation.leafStats
+        .map(item => `(${item.n}/${evaluation.dataRowIndexes.length})*${formatNumber(item.estimatedError)}`)
+        .join(" + ");
+    const equivalentNumerator = `${evaluation.subtreeErrors} + 0.5*${evaluation.leafCount}`;
+    return `Error_subárbol = ${weightedTerms} = ${formatNumber(evaluation.subtreeEstimatedError)}. Equivalente: (${equivalentNumerator}) / ${evaluation.dataRowIndexes.length} = ${formatNumber(evaluation.subtreeEstimatedError)}`;
+}
+
+function createSubtreeSourceTooltip(evaluation) {
+    const leaves = evaluation.leafStats
+        .map(item => `Hoja ${item.nodeId}: N=${item.n}, E=${item.errors}, peso=${item.n}/${evaluation.dataRowIndexes.length}=${formatNumber(item.weight)}, error=(${item.errors}+0.5)/${item.n}=${formatNumber(item.estimatedError)}`)
+        .join(" | ");
+    return `El subárbol nodo ${evaluation.nodeId} se calcula agregando sus ${evaluation.leafCount} hojas finales. ${leaves}`;
+}
+
+function createVisiblePruningRows(evaluation, subTreeRoot) {
+    const node = subTreeRoot || { id: evaluation.nodeId, children: [], dataRowIndexes: evaluation.dataRowIndexes, n: evaluation.dataRowIndexes.length };
+    return [...(node.children || []), node].map(visibleNode => createPruningNodeTableRow(visibleNode, evaluation));
+}
+
+function createPruningNodeTableRow(node, evaluation) {
+    const leafStats = collectPruningStatsForVisibleNode(node, evaluation);
+    const n = node.n ?? node.dataRowIndexes?.length ?? 0;
+    const errors = leafStats.length > 0
+        ? leafStats.reduce((sum, item) => sum + item.errors, 0)
+        : n - (node.classCounts?.[node.predictedLabel] || 0);
+    const estimatedError = leafStats.length > 0
+        ? leafStats.reduce((sum, item) => {
+            const localWeight = n === 0 ? 0 : item.n / n;
+            return sum + localWeight * item.estimatedError;
+        }, 0)
+        : (n === 0 ? 0 : (errors + 0.5) / n);
+    const totalRows = evaluation.dataRowIndexes.length;
+    const weight = totalRows === 0 ? 0 : n / totalRows;
+    const kind = node.id === evaluation.nodeId
+        ? "Nodo evaluado"
+        : (node.isLeaf || node.children.length === 0 ? "Hoja" : "Nodo");
+    const predictedLabel = node.predictedLabel ? ` -> ${node.predictedLabel}` : "";
+    const isAggregatedNode = leafStats.length > 1 || (!node.isLeaf && node.children.length > 0);
+    return {
+        label: `${kind} ${node.id}${predictedLabel}`,
+        n,
+        errors,
+        weight,
+        estimatedError,
+        elementTooltip: isAggregatedNode
+            ? "Nodo visible en el SVG. Su error se calcula agregando las hojas internas que dependen de el."
+            : "Hoja visible en el SVG. Su error se calcula directamente con sus registros.",
+        errorsTooltip: isAggregatedNode
+            ? `Errores = ${leafStats.map(item => item.errors).join(" + ")} = ${errors}`
+            : `Errores = ${n} - ${n - errors} = ${errors}`,
+        errorTooltip: isAggregatedNode
+            ? createAggregatedNodeErrorTooltip(leafStats, n, estimatedError)
+            : `Error estimado = (${errors} + 0.5) / ${n} = ${formatNumber(estimatedError)}`
+    };
+}
+
+function createAggregatedNodeErrorTooltip(leafStats, totalRows, estimatedError) {
+    const terms = leafStats
+        .map(item => `(${item.n}/${totalRows})*${formatNumber(item.estimatedError)}`)
+        .join(" + ");
+    return `Error estimado = ${terms} = ${formatNumber(estimatedError)}`;
+}
+
+function collectPruningStatsForVisibleNode(node, evaluation) {
+    const statByNodeId = new Map(evaluation.leafStats.map(item => [item.nodeId, item]));
+    const leaves = [];
+    collectLeavesForTable(node, leaves);
+    return leaves
+        .map(leaf => statByNodeId.get(leaf.id))
+        .filter(Boolean);
+}
+
+function collectLeavesForTable(node, leaves) {
+    if (node.isLeaf || node.children.length === 0) {
+        leaves.push(node);
+        return;
+    }
+    node.children.forEach(child => collectLeavesForTable(child, leaves));
 }
 
 function updateTreeStepButtons() {
@@ -600,7 +796,7 @@ function renderTreeStepButtons() {
         { label: "|<", title: "Ir al primer paso", action: () => goToStep(0) },
         { label: "<", title: "Ir al paso anterior", action: () => goToStep(currentTreeStep - 1) },
         { label: ">", title: "Ir al paso siguiente", action: () => goToStep(currentTreeStep + 1) },
-        { label: ">|", title: "Ir al ultimo paso", action: () => goToStep(getCurrentStepCount() - 1) }
+        { label: ">|", title: "Ir al último paso", action: () => goToStep(getCurrentStepCount() - 1) }
     ];
 
     controls.forEach(control => {
@@ -701,7 +897,11 @@ function createC45ValueTableHead() {
     classHeader.textContent = "Clases";
     firstRow.appendChild(classHeader);
 
-    ["Proporción", "E", "CE", "Ganancia de información", "Split Info", "Gain Ratio"].forEach(text => {
+    const metricHeaders = ["Proporción", "E", "CE", "Ganancia de información"];
+    if (!isInformationGainCriterion()) {
+        metricHeaders.push("Split Info", "Gain Ratio");
+    }
+    metricHeaders.forEach(text => {
         const th = document.createElement("th");
         th.scope = "col";
         th.rowSpan = 2;
@@ -799,10 +999,13 @@ function createNextCategoricalCalculationRow(attributeData, index) {
 
     if (index === 0) {
         tr.appendChild(createCell(formatNumber(attributeData.conditionalEntropy), { rowSpan: rows.length, classes: [selectedClass] }));
-        tr.appendChild(createCell(formatNumber(attributeData.informationGain), { rowSpan: rows.length, classes: [selectedClass] }));
-        tr.appendChild(createCell(formatNumber(attributeData.splitInfo), { rowSpan: rows.length, classes: [selectedClass] }));
-        const gainRatioText = `${formatNumber(attributeData.gainRatio)}${attributeData.selected ? " Seleccionado" : ""}`;
-        tr.appendChild(createCell(gainRatioText, { rowSpan: rows.length, classes: ["fw-semibold", selectedClass] }));
+        const informationGainText = `${formatNumber(attributeData.informationGain)}${isInformationGainCriterion() && attributeData.selected ? " Seleccionado" : ""}`;
+        tr.appendChild(createCell(informationGainText, { rowSpan: rows.length, classes: [isInformationGainCriterion() ? "fw-semibold" : "", selectedClass] }));
+        if (!isInformationGainCriterion()) {
+            tr.appendChild(createCell(formatNumber(attributeData.splitInfo), { rowSpan: rows.length, classes: [selectedClass] }));
+            const gainRatioText = `${formatNumber(attributeData.gainRatio)}${attributeData.selected ? " Seleccionado" : ""}`;
+            tr.appendChild(createCell(gainRatioText, { rowSpan: rows.length, classes: ["fw-semibold", selectedClass] }));
+        }
     }
 
     return tr;
@@ -828,10 +1031,13 @@ function createNextNumericCalculationRow(attributeData, candidateIndex, groupInd
 
     if (groupIndex === 0) {
         tr.appendChild(createCell(formatNumber(candidate.conditionalEntropy), { rowSpan: 2, classes: [selectedClass] }));
-        tr.appendChild(createCell(formatNumber(candidate.informationGain), { rowSpan: 2, classes: [selectedClass] }));
-        tr.appendChild(createCell(formatNumber(candidate.splitInfo), { rowSpan: 2, classes: [selectedClass] }));
-        const gainRatioText = `${formatNumber(candidate.gainRatio)}${selected ? " Seleccionado" : ""}`;
-        tr.appendChild(createCell(gainRatioText, { rowSpan: 2, classes: ["fw-semibold", selectedClass] }));
+        const informationGainText = `${formatNumber(candidate.informationGain)}${isInformationGainCriterion() && selected ? " Seleccionado" : ""}`;
+        tr.appendChild(createCell(informationGainText, { rowSpan: 2, classes: [isInformationGainCriterion() ? "fw-semibold" : "", selectedClass] }));
+        if (!isInformationGainCriterion()) {
+            tr.appendChild(createCell(formatNumber(candidate.splitInfo), { rowSpan: 2, classes: [selectedClass] }));
+            const gainRatioText = `${formatNumber(candidate.gainRatio)}${selected ? " Seleccionado" : ""}`;
+            tr.appendChild(createCell(gainRatioText, { rowSpan: 2, classes: ["fw-semibold", selectedClass] }));
+        }
     }
 
     return tr;
@@ -841,6 +1047,10 @@ function appendClassCountCells(row, classCounts, extraClass = "") {
     currentDataset.model.classLabels.forEach(label => {
         row.appendChild(createCell(String(classCounts[label] || 0), { classes: [extraClass] }));
     });
+}
+
+function isInformationGainCriterion() {
+    return currentDataset?.model?.criterion === "informationGain";
 }
 
 function createLeafValueTable(node, classLabels) {
@@ -888,6 +1098,7 @@ function createCell(text, options = {}) {
     const cell = document.createElement("td");
     cell.textContent = text;
     if (options.rowSpan) cell.rowSpan = options.rowSpan;
+    if (options.title) cell.title = options.title;
     (options.classes || []).filter(Boolean).forEach(className => cell.classList.add(className));
     return cell;
 }
@@ -938,6 +1149,10 @@ function renderTree({ root, maxStepNumber, currentNodeId, progressive }) {
     nodes.forEach(node => {
         svg.appendChild(createTreeNodeGraphic(node, node.stepNumber === maxStepNumber || node.id === currentNodeId));
     });
+    const focusedNode = nodes.find(node => node.id === currentNodeId)
+        || nodes.find(node => progressive && node.stepNumber === maxStepNumber)
+        || nodes.find(node => node.parent === null)
+        || nodes[0];
 
     const wrapper = document.createElement("div");
     wrapper.classList.add("chosen-node-preview");
@@ -956,7 +1171,7 @@ function renderTree({ root, maxStepNumber, currentNodeId, progressive }) {
 
     treeSvgContainer.appendChild(controls);
     treeSvgContainer.appendChild(treeZoomContainer);
-    initializeTreeZoom(treeZoomContainer, scaleShell, wrapper, controls);
+    initializeTreeZoom(treeZoomContainer, scaleShell, wrapper, controls, focusedNode);
 }
 
 export function refreshTreeLayout() {
@@ -967,6 +1182,14 @@ export function refreshTreeLayout() {
         return;
     }
     renderProgressiveTree(currentDataset.model.steps[currentTreeStep].stepNumber);
+}
+
+function syncTreeLayout() {
+    if (!treeZoomState) return;
+    updateTreeZoomShellSize();
+    if (treeZoomState.isPointerInside && treeZoomState.lastPointer) {
+        updateTreeMagnifier(treeZoomState.lastPointer);
+    }
 }
 
 function createTreeZoomControls() {
@@ -1033,7 +1256,7 @@ function createTreeZoomButton(text, ariaLabel, action) {
     return button;
 }
 
-function initializeTreeZoom(treeZoomContainer, scaleShell, treeZoomContent, controls) {
+function initializeTreeZoom(treeZoomContainer, scaleShell, treeZoomContent, controls, focusedNode = null) {
     const treeMagnifier = document.createElement("div");
     treeMagnifier.id = "treeMagnifier";
     treeMagnifier.classList.add("tree-magnifier");
@@ -1047,6 +1270,11 @@ function initializeTreeZoom(treeZoomContainer, scaleShell, treeZoomContent, cont
         controls,
         baseWidth: 0,
         baseHeight: 0,
+        naturalWidth: 0,
+        naturalHeight: 0,
+        viewBoxWidth: 0,
+        viewBoxHeight: 0,
+        focusedNode,
         isPointerInside: false,
         lastPointer: null
     };
@@ -1077,9 +1305,11 @@ function initializeTreeZoom(treeZoomContainer, scaleShell, treeZoomContent, cont
 
     applyTreeZoomScale();
     requestAnimationFrame(() => {
+        setTreeZoomNaturalSize();
         updateTreeZoomShellSize();
         syncTreeMagnifierContent();
         updateTreeZoomControls();
+        centerTreeViewportOnFocusedNode();
     });
 }
 
@@ -1090,7 +1320,9 @@ function destroyTreeZoom() {
 }
 
 function setTreeZoomScale(nextScale) {
-    treeZoomScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(nextScale.toFixed(2))));
+    const numericScale = Number(nextScale);
+    const safeScale = Number.isFinite(numericScale) ? numericScale : 1;
+    treeZoomScale = clamp(Math.round(safeScale * 100) / 100, MIN_ZOOM, MAX_ZOOM);
     applyTreeZoomScale();
 }
 
@@ -1117,14 +1349,61 @@ function applyTreeZoomScale() {
 function updateTreeZoomShellSize() {
     if (!treeZoomState) return;
 
-    const { scaleShell, treeZoomContent } = treeZoomState;
-    const rect = treeZoomContent.getBoundingClientRect();
-    const baseWidth = treeZoomContent.scrollWidth || rect.width / treeZoomScale;
-    const baseHeight = treeZoomContent.scrollHeight || rect.height / treeZoomScale;
+    if (!treeZoomState.naturalWidth || !treeZoomState.naturalHeight) {
+        setTreeZoomNaturalSize();
+    }
+
+    const { scaleShell } = treeZoomState;
+    const baseWidth = treeZoomState.naturalWidth;
+    const baseHeight = treeZoomState.naturalHeight;
     treeZoomState.baseWidth = baseWidth;
     treeZoomState.baseHeight = baseHeight;
     scaleShell.style.width = `${baseWidth * treeZoomScale}px`;
     scaleShell.style.height = `${baseHeight * treeZoomScale}px`;
+}
+
+function setTreeZoomNaturalSize() {
+    if (!treeZoomState) return;
+
+    const { treeZoomContent } = treeZoomState;
+    const svg = treeZoomContent.querySelector("svg");
+    const viewBox = svg?.viewBox?.baseVal;
+    const minTreeWidth = remToPixels(72);
+    const viewBoxWidth = viewBox?.width || 0;
+    const viewBoxHeight = viewBox?.height || 0;
+    const naturalWidth = Math.max(viewBoxWidth, minTreeWidth);
+    const naturalHeight = viewBoxWidth > 0
+        ? Math.max(viewBoxHeight * (naturalWidth / viewBoxWidth), viewBoxHeight)
+        : Math.max(svg?.clientHeight || 0, treeZoomContent.offsetHeight || 0);
+
+    treeZoomState.naturalWidth = naturalWidth;
+    treeZoomState.naturalHeight = naturalHeight;
+    treeZoomState.viewBoxWidth = viewBoxWidth;
+    treeZoomState.viewBoxHeight = viewBoxHeight;
+    treeZoomContent.style.width = `${naturalWidth}px`;
+    treeZoomContent.style.height = `${naturalHeight}px`;
+    if (svg) {
+        svg.style.width = `${naturalWidth}px`;
+        svg.style.height = `${naturalHeight}px`;
+    }
+}
+
+function remToPixels(rem) {
+    const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return rem * (Number.isFinite(rootFontSize) ? rootFontSize : 16);
+}
+
+function centerTreeViewportOnFocusedNode() {
+    if (!treeZoomState?.focusedNode) return;
+
+    const { treeZoomContainer, focusedNode, naturalWidth, naturalHeight, viewBoxWidth, viewBoxHeight } = treeZoomState;
+    const scaleX = viewBoxWidth > 0 ? naturalWidth / viewBoxWidth : 1;
+    const scaleY = viewBoxHeight > 0 ? naturalHeight / viewBoxHeight : scaleX;
+    const targetX = focusedNode.x * scaleX * treeZoomScale - treeZoomContainer.clientWidth / 2;
+    const targetY = focusedNode.y * scaleY * treeZoomScale - treeZoomContainer.clientHeight / 3;
+
+    treeZoomContainer.scrollLeft = clamp(targetX, 0, Math.max(0, treeZoomContainer.scrollWidth - treeZoomContainer.clientWidth));
+    treeZoomContainer.scrollTop = clamp(targetY, 0, Math.max(0, treeZoomContainer.scrollHeight - treeZoomContainer.clientHeight));
 }
 
 function updateTreeZoomControls() {
@@ -1140,9 +1419,9 @@ function updateTreeZoomControls() {
         treeMagnifierEnabled && canUseMagnifier ? "Desactivar lupa del árbol" : "Activar lupa del árbol"
     );
     treeMagnifierButton.title = treeMagnifierButton.getAttribute("aria-label");
-    zoomOutButton.disabled = treeZoomScale <= MIN_ZOOM;
-    zoomInButton.disabled = treeZoomScale >= MAX_ZOOM;
-    resetZoomButton.disabled = treeZoomScale === 1;
+    zoomOutButton.disabled = treeZoomScale <= MIN_ZOOM + 0.001;
+    zoomInButton.disabled = treeZoomScale >= MAX_ZOOM - 0.001;
+    resetZoomButton.disabled = Math.abs(treeZoomScale - 1) < 0.001;
     resetZoomButton.textContent = "100%";
     zoomIndicator.textContent = `${Math.round(treeZoomScale * 100)}%`;
 }
@@ -1263,13 +1542,13 @@ function cloneSubtreeForPreview(node) {
 
 function assignPreviewTreePositions(root) {
     let leafIndex = 0;
-    const spacingX = 112;
-    const spacingY = 128;
+    const spacingX = 136;
+    const spacingY = 132;
 
     const assign = node => {
         node.y = 60 + node.depth * spacingY;
         if (node.children.length === 0) {
-            node.x = 56 + leafIndex * spacingX;
+            node.x = 68 + leafIndex * spacingX;
             leafIndex++;
             return node.x;
         }
@@ -1287,22 +1566,41 @@ function assignPreviewTreePositions(root) {
     assign(root);
 }
 
+function centerPreviewNodes(nodes, canvasWidth) {
+    const minX = Math.min(...nodes.map(node => node.x));
+    const maxX = Math.max(...nodes.map(node => node.x));
+    const currentCenter = (minX + maxX) / 2;
+    const shiftX = canvasWidth / 2 - currentCenter;
+    nodes.forEach(node => {
+        node.x += shiftX;
+    });
+}
+
 function createTreeBranch(parent, child) {
     const group = createSvgElement("g");
     const parentBottomOffset = parent.isLeaf ? 32 : 39;
     const childTopOffset = child.isLeaf ? 32 : 39;
+    const x1 = parent.x;
+    const y1 = parent.y + parentBottomOffset;
+    const x2 = child.x;
+    const y2 = child.y - childTopOffset;
     group.appendChild(createSvgElement("line", {
-        x1: parent.x,
-        y1: parent.y + parentBottomOffset,
-        x2: child.x,
-        y2: child.y - childTopOffset,
+        x1,
+        y1,
+        x2,
+        y2,
         class: "chosen-node-svg-branch-line"
     }));
 
-    const labelX = (parent.x + child.x) / 2;
-    const labelY = (parent.y + child.y) / 2;
+    const labelX = (x1 + x2) / 2;
+    const labelY = (y1 + y2) / 2;
     const fullBranchLabel = child.branchCondition?.label || formatBranchLabel(child.branchCondition);
-    group.appendChild(createBranchLabel(shortenText(formatBranchLabel(child.branchCondition), 16), fullBranchLabel, labelX, labelY));
+    const isCategoricalBranch = child.branchCondition && !["<=", ">"].includes(child.branchCondition.operator);
+    if (isCategoricalBranch) {
+        group.appendChild(createAlignedBranchLabel(fullBranchLabel, labelX, labelY, x1, y1, x2, y2));
+    } else {
+        group.appendChild(createBranchLabel(shortenText(formatBranchLabel(child.branchCondition), 16), fullBranchLabel, labelX, labelY));
+    }
     return group;
 }
 
@@ -1328,7 +1626,7 @@ function createTreeNodeGraphic(node, isCurrent) {
         : (node.attributeType === "numeric" ? `${node.attribute} <= ${formatNumber(node.threshold)}` : node.attribute);
     const displayedTitle = node.isLeaf
         ? fullTitle
-        : (node.attributeType === "numeric" ? `${formatAttributeLabel(node.attribute)} <= ${formatNumber(node.threshold)}` : formatAttributeLabel(node.attribute));
+        : (node.attributeType === "numeric" ? `${formatAttributeLabel(node.attribute)} ${formatNumber(node.threshold)}` : formatAttributeLabel(node.attribute));
 
     appendSvgTitle(group, fullTitle);
 
@@ -1384,6 +1682,44 @@ function createBranchLabel(text, fullText, x, y) {
     }));
     group.appendChild(createSvgText(text, x, y, ["chosen-node-svg-branch-condition"], "middle", fullText));
     return group;
+}
+
+function createAlignedBranchLabel(fullText, x, y, x1, y1, x2, y2) {
+    const lineLength = Math.hypot(x2 - x1, y2 - y1);
+    const maxTextWidth = clamp(lineLength - 28, 42, 150);
+    const text = shortenTextToWidth(fullText, maxTextWidth);
+    const paddingX = 6;
+    const width = Math.min(maxTextWidth, Math.max(22, estimateSvgTextWidth(text) + paddingX * 2));
+    const angle = normalizeTextAngle(Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI);
+    const group = createSvgElement("g", {
+        transform: `translate(${x} ${y}) rotate(${angle})`
+    });
+    appendSvgTitle(group, fullText);
+    group.appendChild(createSvgElement("rect", {
+        x: -width / 2,
+        y: -10,
+        width,
+        height: 20,
+        rx: 6,
+        class: "chosen-node-svg-label-bg"
+    }));
+    group.appendChild(createSvgText(text, 0, 4, ["chosen-node-svg-branch-condition"], "middle", fullText));
+    return group;
+}
+
+function normalizeTextAngle(angle) {
+    if (angle > 90) return angle - 180;
+    if (angle < -90) return angle + 180;
+    return angle;
+}
+
+function shortenTextToWidth(text, maxWidth) {
+    const maxChars = Math.max(3, Math.floor((maxWidth - 10) / 7));
+    return shortenText(text, maxChars);
+}
+
+function estimateSvgTextWidth(text) {
+    return text.length * 7;
 }
 
 function createSvgText(text, x, y, classes = ["chosen-node-svg-text"], anchor = "start", titleText = "") {

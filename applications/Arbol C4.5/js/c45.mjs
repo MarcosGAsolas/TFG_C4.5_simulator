@@ -5,7 +5,8 @@ const EPSILON = 1e-12;
  * @param {string[][]} rows Header row plus data rows.
  * @returns {{root: object, steps: object[], headers: string[], classLabels: string[]}}
  */
-export function buildC45FromRows(rows) {
+export function buildC45FromRows(rows, options = {}) {
+    const criterion = options.criterion === "informationGain" ? "informationGain" : "gainRatio";
     const headers = rows[0];
     const classIndex = headers.length - 1;
     const data = rows.slice(1).map((values, index) => ({ values, index }));
@@ -27,6 +28,7 @@ export function buildC45FromRows(rows) {
         headers,
         classIndex,
         classLabels,
+        criterion,
         getNextId: () => nextNodeId++
     });
 
@@ -34,7 +36,7 @@ export function buildC45FromRows(rows) {
     const steps = collectSteps(root);
     const pruning = pruneC45Tree(root, classLabels);
 
-    return { root, steps, headers, classLabels, pruning };
+    return { root, steps, headers, classLabels, pruning, criterion };
 }
 
 /**
@@ -118,7 +120,7 @@ export function gainRatio(baseEntropy, conditionalEntropy, splitInfo) {
 }
 
 function buildNode(context) {
-    const { rows, parent, branchCondition, depth, attributes, headers, classIndex, classLabels, getNextId } = context;
+    const { rows, parent, branchCondition, depth, attributes, headers, classIndex, classLabels, criterion, getNextId } = context;
     const id = getNextId();
     const labels = rows.map(row => row.values[classIndex]);
     const counts = countLabels(labels, classLabels);
@@ -134,9 +136,10 @@ function buildNode(context) {
         };
     }
 
-    const evaluation = evaluateAttributes(rows, attributes, classIndex, classLabels, nodeEntropy);
+    const evaluation = evaluateAttributes(rows, attributes, classIndex, classLabels, nodeEntropy, criterion);
     const selected = evaluation.find(item => item.selected);
-    if (!selected || selected.gainRatio <= EPSILON) {
+    const selectedScore = getSelectionScore(selected?.bestCandidate, criterion);
+    if (!selected || selectedScore <= EPSILON) {
         return {
             ...base,
             isLeaf: true,
@@ -180,10 +183,11 @@ function buildNode(context) {
             depth: depth + 1,
             attributes: childAttributes,
             headers,
-            classIndex,
-            classLabels,
-            getNextId
-        });
+                classIndex,
+                classLabels,
+                criterion,
+                getNextId
+            });
         node.children.push(child);
     });
 
@@ -225,17 +229,17 @@ function createBaseNode({ id, rows, parent, branchCondition, depth, counts, node
     };
 }
 
-function evaluateAttributes(rows, attributes, classIndex, classLabels, baseEntropy) {
+function evaluateAttributes(rows, attributes, classIndex, classLabels, baseEntropy, criterion) {
     const evaluations = attributes
         .map((attribute, csvOrder) => {
             const result = attribute.type === "numeric"
-                ? evaluateNumericAttribute(rows, attribute, classIndex, classLabels, baseEntropy)
+                ? evaluateNumericAttribute(rows, attribute, classIndex, classLabels, baseEntropy, criterion)
                 : evaluateCategoricalAttribute(rows, attribute, classIndex, classLabels, baseEntropy);
             return result ? { ...result, csvOrder } : null;
         })
         .filter(Boolean);
 
-    const selected = [...evaluations].sort(compareEvaluation)[0] || null;
+    const selected = [...evaluations].sort((a, b) => compareEvaluation(a, b, criterion))[0] || null;
     return evaluations.map(item => ({ ...item, selected: item === selected }));
 }
 
@@ -277,7 +281,7 @@ function evaluateCategoricalAttribute(rows, attribute, classIndex, classLabels, 
     };
 }
 
-function evaluateNumericAttribute(rows, attribute, classIndex, classLabels, baseEntropy) {
+function evaluateNumericAttribute(rows, attribute, classIndex, classLabels, baseEntropy, criterion) {
     const sortedRows = rows
         .map(row => ({ row, value: parseNumericValue(row.values[attribute.index]), label: row.values[classIndex] }))
         .filter(item => Number.isFinite(item.value))
@@ -304,7 +308,7 @@ function evaluateNumericAttribute(rows, attribute, classIndex, classLabels, base
     }
 
     if (candidates.length === 0) return null;
-    candidates.sort(compareCandidate);
+    candidates.sort((a, b) => compareCandidate(a, b, criterion));
     const bestCandidate = candidates[0];
 
     return {
@@ -360,23 +364,30 @@ function inferAttributeTypes(rows, classIndex) {
     return types;
 }
 
-function compareEvaluation(a, b) {
+function compareEvaluation(a, b, criterion = "gainRatio") {
     return compareCandidate(
         { ...a.bestCandidate, csvOrder: a.csvOrder },
-        { ...b.bestCandidate, csvOrder: b.csvOrder }
+        { ...b.bestCandidate, csvOrder: b.csvOrder },
+        criterion
     );
 }
 
-function compareCandidate(a, b) {
-    const gr = b.gainRatio - a.gainRatio;
-    if (Math.abs(gr) > EPSILON) return gr;
-    const gain = b.informationGain - a.informationGain;
-    if (Math.abs(gain) > EPSILON) return gain;
+function compareCandidate(a, b, criterion = "gainRatio") {
+    const primary = getSelectionScore(b, criterion) - getSelectionScore(a, criterion);
+    if (Math.abs(primary) > EPSILON) return primary;
+    const secondaryCriterion = criterion === "informationGain" ? "gainRatio" : "informationGain";
+    const secondary = getSelectionScore(b, secondaryCriterion) - getSelectionScore(a, secondaryCriterion);
+    if (Math.abs(secondary) > EPSILON) return secondary;
     if (a.csvOrder !== undefined && b.csvOrder !== undefined && a.csvOrder !== b.csvOrder) {
         return a.csvOrder - b.csvOrder;
     }
     if (a.threshold !== null && b.threshold !== null) return a.threshold - b.threshold;
     return 0;
+}
+
+function getSelectionScore(candidate, criterion) {
+    if (!candidate) return 0;
+    return criterion === "informationGain" ? candidate.informationGain : candidate.gainRatio;
 }
 
 function collectSteps(root) {
@@ -507,7 +518,7 @@ function buildPruningProcessSteps(root, evaluations) {
     const workingRoot = cloneTree(root, null);
     const processSteps = [createPruningProcessStep({
         root: workingRoot,
-        title: "Paso 1: Arbol completo para poda",
+        title: "Paso 1: Árbol completo para poda",
         evaluation: null,
         action: "initial"
     })];
@@ -515,7 +526,7 @@ function buildPruningProcessSteps(root, evaluations) {
     evaluations.forEach((evaluation, index) => {
         processSteps.push(createPruningProcessStep({
             root: workingRoot,
-            title: `Paso ${processSteps.length + 1}: Evaluar subarbol del nodo ${evaluation.nodeId}`,
+            title: `Paso ${processSteps.length + 1}: Evaluar subárbol del nodo ${evaluation.nodeId}`,
             evaluation,
             action: "evaluate"
         }));
@@ -525,14 +536,14 @@ function buildPruningProcessSteps(root, evaluations) {
             convertNodeToPrunedLeaf(node);
             processSteps.push(createPruningProcessStep({
                 root: workingRoot,
-                title: `Paso ${processSteps.length + 1}: Podar subarbol del nodo ${evaluation.nodeId}`,
+                title: `Paso ${processSteps.length + 1}: Podar subárbol del nodo ${evaluation.nodeId}`,
                 evaluation,
                 action: "pruned"
             }));
         } else {
             processSteps.push(createPruningProcessStep({
                 root: workingRoot,
-                title: `Paso ${processSteps.length + 1}: Conservar subarbol del nodo ${evaluation.nodeId}`,
+                title: `Paso ${processSteps.length + 1}: Conservar subárbol del nodo ${evaluation.nodeId}`,
                 evaluation,
                 action: "kept"
             }));

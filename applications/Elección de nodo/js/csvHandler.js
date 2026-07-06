@@ -82,7 +82,7 @@ function obtenerTiposAtributos(datos, atributos) {
             if (valor === "") {
                 tieneValoresVacios = true;
             }
-            if (!isNaN(Number(valor))) { // Si el valor puede convertirse a numero: es decir, que cuando el valor lo convertimos a numero no sale un nan
+            if (!isNaN(Number(valor))) { // Si el valor puede convertirse a número: es decir, que cuando el valor lo convertimos a número no sale NaN.
                 tieneNumeros = true;
             } else {
                 tieneTexto = true;
@@ -166,8 +166,8 @@ function obtenerValorCelda(celda){
  */
 function transformData(data) {
     const headers = data[0]; // guarda la primera fila de toda la tabla, es decir, los encabezados
-    const attributes = headers.slice(0, -1); // obtiene todos los encabezados, menos el ultimo
-    const label = headers[headers.length - 1]; // obtiene el nombre del ultimo valor del encabezado
+    const attributes = headers.slice(0, -1); // Obtiene todos los encabezados, menos el último.
+    const label = headers[headers.length - 1]; // Obtiene el nombre del último valor del encabezado.
 
     const attributeValues = getAttributes(data, attributes); // llama a la función de obtener atributos, es decir, obtiene los posibles valores de cada atributo
     const tipoDeAtributos = obtenerTiposAtributos(data, attributes); // llama a la función de obtener tipos de atributos
@@ -188,7 +188,7 @@ function transformData(data) {
 
     // Reset everything and build the tree and tables based on the new data 
     var svgEl = document.getElementById(svgId); // obtiene el SVG del árbol en el HTML
-    destroyTree(svgEl); // Lo destruye para construir el nuevo arbol 
+    destroyTree(svgEl); // Lo destruye para construir el nuevo árbol.
     buildTree(); // Construye el nuevo arbol usando los datos guardados en sesionStorage
 
     createDataTable(); // Crea la tabla 
