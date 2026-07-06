@@ -439,15 +439,16 @@ main.container {
     justify-content: center;
     align-items: center;
     margin-bottom: 0.5rem;
-    overflow: auto;
+    overflow: visible;
 }
 
 .pruning-subtree-svg {
     display: block;
     flex: 0 0 auto;
-    width: 100%;
-    max-width: 42rem;
-    min-width: min(100%, 28rem);
+    width: min(100%, 34rem);
+    max-width: 34rem;
+    max-height: clamp(12rem, 28vh, 17rem);
+    object-fit: contain;
     margin-right: auto;
     margin-left: auto;
 }
