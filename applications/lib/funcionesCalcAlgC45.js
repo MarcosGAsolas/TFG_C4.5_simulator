@@ -15,15 +15,15 @@ export function calcularUmbral(valor1, valor2) {
 
 
 /**
- * Calculadora de la entropia de un umbral
+ * Calculadora de la entropía de un umbral.
  * 
  * El umbral divide las filas en dos grupos:
  * - grupo izquierdo: valores menores o iguales al umbral
  * - grupo derecho: valores mayores que el umbral
  * 
  * @param {*} filasOrdenadas Las fila de números ordenada del un conjunto de datos
- * @param {*} umbral El umbral del que queremos calcular la entropia 
- * @returns devuelve la entropia calculada de un umbral en un conjunto de datos
+ * @param {*} umbral El umbral del que queremos calcular la entropía.
+ * @returns Devuelve la entropía calculada de un umbral en un conjunto de datos.
  */
 export function calcularEntropiaParaUmbral(filasOrdenadas, umbral) {
     const grupoIzquierdo = [];
@@ -49,9 +49,9 @@ export function calcularEntropiaParaUmbral(filasOrdenadas, umbral) {
 }
 
 /**
- * Calculamos la entropia de un grupo de datos
+ * Calculamos la entropía de un grupo de datos.
  * @param {*} grupo conjunto de filas pertenecientes a un grupo, cada fila tiene que tener la forma: [valorAtributo, clase]
- * @returns devuelve la entropia del grupo de datos
+ * @returns Devuelve la entropía del grupo de datos.
  */
 export function calcularEntropiaDeGrupo(grupo) {
     if (grupo.length === 0) return 0;

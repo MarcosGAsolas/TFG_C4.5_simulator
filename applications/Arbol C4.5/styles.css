@@ -435,14 +435,21 @@ main.container {
 }
 
 .pruning-subtree-preview {
+    display: flex;
     justify-content: center;
+    align-items: center;
     margin-bottom: 0.5rem;
     overflow: auto;
 }
 
 .pruning-subtree-svg {
-    width: min(100%, 42rem);
-    min-width: 28rem;
+    display: block;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 42rem;
+    min-width: min(100%, 28rem);
+    margin-right: auto;
+    margin-left: auto;
 }
 
 .c45-current-node {
