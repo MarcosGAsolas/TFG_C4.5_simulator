@@ -156,7 +156,3 @@ Archivo de despliegue:
 - Marcos Guzmán Asolas
 - Carlos López Nozal
 - Gadea Lucas Pérez
-
-## Licencia
-
-Este proyecto se ha desarrollado como parte de un Trabajo de Fin de Grado. Si se añade una licencia específica al repositorio, deberá indicarse en esta sección.
