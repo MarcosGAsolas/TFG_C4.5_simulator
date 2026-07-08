@@ -1,0 +1,38 @@
+\apendice{Anexo de sostenibilidad curricular}
+
+\section{Introducción}
+Este apéndice ofrece una reflexión personal sobre la sostenibilidad de este proyecto. En el contexto de una aplicación web, la sostenibilidad busca crear soluciones eficientes, fáciles de usar y responsables desde el punto de vista medioambiental.
+
+\section{Reflexión sobre sostenibilidad}
+
+\subsection{Procesamiento en el lado del cliente}
+La decisión de utilizar únicamente procesamiento en el lado del cliente para una aplicación de tamaño reducido como esta permite una mayor eficiencia en el uso de recursos, ya que ninguno de los datos utilizados necesita almacenarse en un servidor. El conjunto de datos CSV del usuario se mantiene siempre en la sesión de la página dentro del navegador, y se elimina cuando se cierra la pestaña o la ventana.
+
+\subsection{KISS}
+La elección de esta estructura también está relacionada con el principio KISS (\textit{Keep It Simple, Stupid}), que busca mantener la simplicidad y evitar la complejidad innecesaria. Esto se traduce en un menor consumo energético general y en menores costes de mantenimiento. Además, produce menos errores y facilita la actualización o mejora del proyecto. Un código más sencillo también presenta una mayor capacidad de adaptación ante futuros cambios que puedan ser implementados por desarrolladores interesados en ampliar la funcionalidad de la aplicación.
+
+\subsection{Código abierto}
+En este proyecto se han utilizado únicamente herramientas y librerías de código abierto, lo que contribuye a su desarrollo y a su uso generalizado. El hecho de que el código del proyecto esté disponible públicamente y sea accesible para cualquier persona supone otra contribución sostenible a la comunidad de desarrolladores. No solo permite que otros programadores puedan ampliar este código, sino que también puede resultar útil para enseñar a estudiantes o a personas interesadas en la materia.
+
+\subsection{Reducción de la complejidad computacional}
+A lo largo del proyecto se ha intentado mantener la complejidad computacional lo más baja posible mediante el uso de algoritmos eficientes. Un ejemplo de ello es el algoritmo utilizado para calcular las posiciones de los nodos dentro del árbol.
+
+\subsection{Mantenibilidad}
+Se ha procurado que el código del proyecto sea fácilmente legible para futuros desarrolladores que quieran ampliarlo o modificarlo. Para ello, se han incluido comentarios claros que explican qué se realiza en cada paso. También se ha dado prioridad al uso de nombres de variables y funciones comprensibles. Además, se ha intentado mantener una adecuada separación de responsabilidades, de forma que los programadores que deseen ampliar o editar el proyecto puedan identificar y modificar cada componente sin enfrentarse a dependencias poco claras dentro del código.
+
+\subsection{Coste de producción}
+Como se muestra en \ref{software_hardware_costs}, el único coste de producción de este proyecto procede del equipo en el que se ha desarrollado. No ha sido necesario adquirir licencias ni herramientas adicionales que pudieran influir negativamente en la sostenibilidad.
+
+\subsection{Diseño ligero}
+La decisión de mantener un diseño más minimalista en la aplicación web, con una cantidad reducida de imágenes, contribuye a la eficiencia en el uso de recursos. El uso de SVG también favorece este aspecto, ya que permite representar elementos gráficos de forma escalable y ligera.
+
+\subsection{Alojamiento mediante GitHub Pages}
+El uso de GitHub Pages como servicio de alojamiento para mostrar esta aplicación web también contribuye a la sostenibilidad del proyecto, ya que GitHub pertenece a Microsoft, empresa que ha adquirido compromisos relacionados con la reducción de emisiones de carbono y el uso de energías renovables.
+
+\subsection{Diseño responsive}
+El desarrollo de una aplicación web que funciona correctamente en diferentes dispositivos permite ofrecer una experiencia común independientemente del tipo de dispositivo desde el que se ejecute el proyecto. Además, reduce la necesidad de crear varias versiones de una misma aplicación.
+
+\subsection{Potencial de mejora}
+No obstante, existe un aspecto del proyecto que afecta negativamente a su sostenibilidad: la existencia de pruebas incompletas. Unas pruebas incompletas implican la posibilidad de que existan errores no detectados o comportamientos inesperados que puedan suponer un obstáculo para un futuro desarrollador que quiera ampliar el proyecto. Evidentemente, incluso con una cobertura completa de pruebas, seguiría existiendo la posibilidad de que aparecieran errores imprevistos, aunque esta probabilidad sería menor que si solo una parte del proyecto estuviera cubierta por tests.
+
+Además, debido a las limitaciones de tiempo, no se han creado excepciones para todos los métodos. Esto supone otra posible fuente de errores no detectados.

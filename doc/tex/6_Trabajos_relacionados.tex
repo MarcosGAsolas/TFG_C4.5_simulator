@@ -1,0 +1,38 @@
+\capitulo{6}{Trabajos relacionados}
+
+Los simuladores interactivos son herramientas para facilitar y mejorar la comprensión de conceptos teóricos y lógicos de los algoritmos en un aprendizaje automático, permitiendo la observación y simulación del funcionamiento de los algoritmos utilizando parámetros concretos.
+
+A continuación, se van a mostrar diferentes herramientas existentes de simuladores genéricos en diversos contextos docentes.
+
+En cuanto a herramientas de aprendizaje automático, se destacan las siguientes:
+\begin{itemize}
+    
+    \item $Demo of Support Vector Machines (SVM)$ \cite{greitemann2018SVMdemo}: permite entrenar un clasificador SVM a partir del dibujo de los datos sobre un canvas, visualizando en el proceso, como se ajustan las fronteras de decisión para separar las clases.
+
+    \item $Playground Tensor Flow$ \cite{smilkovCarterTensorFlowPlayground}: una herramienta muy popular que permite experimentar con redes neuronales directamente en el navegador.
+    
+\end{itemize}
+
+Como herramientas docentes interactivas encontramos algunas como:
+
+\begin{itemize}
+
+    \item $MLU-EXPLAIN4$ \cite{mluExplainDecisionTrees}: web dedicada a la explicación didáctica de árboles de decision, mostrando ejemplos para comprender diferentes aspectos como la entropía y la ganancia de información.
+    
+    \item $Decision Tree Simulator$ \cite{drefs2026DecisionTreeSimulator}: aplicación web dedicada a la simulación del algoritmo ID3, predecesor del algoritmo C4.5 utilizado en este proyecto. La herramienta permite construir y visualizar árboles de decisión de forma didáctica mediante ID3, además de consultar y comprender conceptos teóricos fundamentales para su funcionamiento, como la entropía y la entropía condicional.
+
+    \item $TensorTonic$ \cite{tensorTonic2026InformationGain}: web dedicada a la explicación de conceptos teóricos como la ganancia de información, visualizando como cambia la ganancia de información en una vista gráfica.
+
+    \item $R2D3 — Una introducción visual al Machine Learning$ \cite{yeeChu2015VisualIntroductionML}: web dedicada a explicar de manera visual, como un árbol crea bifurcaciones y establece límites de decisión.
+    
+\end{itemize}
+
+Aparte de todas las herramientas, tanto para visualizar árboles de decisión como para aprender de forma autónoma conceptos teóricos y lógicos fundamentales para el entendimiento de los algoritmos y la formación de árboles de decisión, para la creación de árboles de decisión en un entorno de producción, requiere de el uso de bibliotecas robustas, existen múltiples alternativas para ello, algunas de las más populares son:
+
+\begin{itemize}
+
+    \item $Weka$ \cite{frank2016WekaWorkbench}: esta biblioteca escrita en Java ofrece acceso a una gran cantidad de algoritmos de aprendizaje para múltiples tipos de problemas. Aunque no contiene el algoritmo ID3, proporciona alternativas mas avanzadas, ´ como el algoritmo J48 (o C4.5) \cite{quinlan2014C45}, que se puede utilizar con características de tipo numérico, así como categórico. Su uso se ha sido extendido a otros lenguajes de programación a través de wrappers como python-wekawrapper3 \cite{fracpete2026PythonWekaWrapper3} para Python y RWeka \cite{hornik2026RWeka} para R. Ademas, proporciona una interfaz gráfica que facilita su uso.
+
+    \item $Scikit-learn$ \cite{pedregosa2011ScikitLearn}: es una de las bibliotecas más populares de Python, permite configurar y personalizar árboles de decisión y otros modelos de aprendizaje automático de manera flexible.
+    
+\end{itemize}

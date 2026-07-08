@@ -1,0 +1,175 @@
+\capitulo{3}{Conceptos teóricos}
+El algoritmo, para poder generar el árbol de decisión, utiliza varios conceptos que debemos entender para llegar a comprender cómo funciona.
+
+\subsection{\textbf{Entropía}}
+
+La entropía \cite{entropy_dash} es un concepto que indica cómo de variados son los datos de la variable objetivo. Dicho de otra forma, permite medir la incertidumbre o el desorden existente dentro de un conjunto de datos.
+
+Por ejemplo, si tenemos un conjunto de datos formado por valores de tipo Sí y No, y contamos con 10 datos en total, de los cuales 5 son Sí y 5 son No, la entropía será máxima, ya que existe la mayor variabilidad posible entre las clases. Sin embargo, si tenemos 10 valores Sí y 0 valores No, la entropía será nula, ya que todos los datos pertenecen a la misma clase. En cambio, si tenemos 6 valores Sí y 4 valores No, la tendencia de los datos será hacia la clase Sí, por lo que la entropía se reducirá.
+
+Por tanto, la entropía puede entenderse como una medida del caos o incertidumbre de un conjunto de datos: cuanto más equilibradas estén las clases, mayor será la entropía; y cuanto más predominante sea una clase sobre otra, menor será.
+
+La fórmula de la entropía es la siguiente:
+
+\begin{equation}
+H(S) = - \sum_{i=1}^{n} P_i \log_2 \left( P_i \right)
+\label{eq:entropy}
+\end{equation}
+
+donde $P_i$ representa la proporción de datos pertenecientes a la clase $i$.
+
+\subsection{\textbf{Ganancia de información}}
+
+La ganancia de información \cite{1996ContinuousC45} mide cuánto se reduce la entropía cuando el conjunto de datos se divide según una determinada variable. Es decir, permite comprobar si una variable ayuda a separar mejor las clases de la variable objetivo.
+
+Por ejemplo, si inicialmente tenemos 5 valores Sí y 5 valores No, la entropía será máxima. Sin embargo, si al dividir el conjunto de datos utilizando la variable $x$ obtenemos subconjuntos en los que la variable objetivo queda más definida, como por ejemplo 3 valores Sí y 1 valor No, esto indica que dicha variable ayuda a reducir la incertidumbre. Por tanto, la variable $x$ podría ser una buena candidata para dividir el árbol de decisión.
+
+La ecuación de la ganancia de información es la siguiente:
+
+\begin{equation}
+Gain(S, A) = H(S) - \sum_{v \in Values(A)} \frac{|S_v|}{|S|} \cdot H(S_v)
+\label{eq:information_gain}
+\end{equation}
+
+donde $A$ es la variable por la cual se está dividiendo el conjunto de datos $S$; $Values(A)$ representa los valores que puede tomar la variable $A$; $S_v$ es el subconjunto de datos de $S$ en el cual la variable $A$ toma el valor $v$; y $|S|$ y $|S_v|$ representan el número de ejemplos en $S$ y $S_v$, respectivamente.
+
+\subsection{\textbf{Split information}}
+
+El \textit{split information} \cite{1996ContinuousC45} indica cómo de ramificado quedará el árbol si se toma una determinada variable para dividir el conjunto de datos. Cuanto más repartidos estén los datos entre los diferentes subconjuntos generados por una variable, mayor será el valor del \textit{split information}.
+
+La ecuación del \textit{split information} es la siguiente:
+
+\begin{equation}
+SplitInfo(S, A) = -\sum_{v \in Values(A)} \frac{|S_v|}{|S|} \log_2 \left( \frac{|S_v|}{|S|} \right)
+\label{eq:split_info}
+\end{equation}
+
+donde $A$ es la variable que se está evaluando para realizar la división del árbol; $Values(A)$ representa los valores posibles de la variable; $S$ es el conjunto de datos; $S_v$ es el subconjunto de datos de $S$ para los que la variable $A$ toma el valor $v$; $|S|$ es el número total de ejemplos del conjunto $S$; y $|S_v|$ es el número total de ejemplos del subconjunto $S_v$.
+
+\subsection{\textbf{Gain ratio}}
+
+El \textit{gain ratio} \cite{1996ContinuousC45} es una medida que permite decidir qué variable debe ser escogida como nodo para dividir el árbol de decisión. Para ello, se calcula el \textit{gain ratio} de cada una de las variables del conjunto de datos y se selecciona aquella que tenga el valor más alto.
+
+La ecuación del \textit{gain ratio} es la siguiente:
+
+\begin{equation}
+GainRatio(S, A) = \frac{Gain(S, A)}{SplitInfo(S, A)}
+\label{eq:gain_ratio}
+\end{equation}
+
+Esta ecuación indica que cuanto mayor sea la ganancia de información, mayor será el \textit{gain ratio}, ya que la variable reduce mejor la entropía del conjunto de datos. Sin embargo, cuanto mayor sea el \textit{split information}, menor será el \textit{gain ratio}, ya que se penalizan aquellas variables que generan divisiones excesivamente ramificadas. Por tanto, el \textit{gain ratio} permite seleccionar variables que no solo reduzcan la entropía, sino que también generen divisiones equilibradas y útiles para la construcción del árbol.
+
+\subsection{\textbf{Poda del árbol o \textit{pruning}}}
+
+La poda del árbol \cite{2014ExpPoda} consiste en recorrer el árbol desde las hojas hacia la raíz para decidir si una determinada ramificación aporta información útil o si, por el contrario, es mejor eliminarla. En este proceso, las ramas innecesarias pueden ser sustituidas por un único nodo hoja.
+
+El objetivo de la poda es evitar la sobre-ramificación del árbol y reducir el sobreajuste. De esta forma, se eliminan divisiones que no aportan valor real a la toma de decisiones y se obtiene un árbol más simple, más comprensible y con mayor capacidad de generalización sobre nuevos datos.
+
+Para ello, se puede calcular el error cometido por un nodo si este se convierte en hoja. Este error se obtiene restando al número total de ejemplos que llegan al nodo el número de ejemplos pertenecientes a la clase mayoritaria:
+
+\begin{equation}
+    e = \frac{E + 0.5}{N}
+\end{equation}
+
+Donde:
+
+\begin{itemize}
+    \item $E$ es el número de ejemplos mal clasificados por el nodo hoja (errores).
+    \item $N$ es el número total de ejemplos que llegan a ese nodo.
+    \item $0.5$ es una penalización pesimista añadida al error observado.
+\end{itemize}
+
+La expresión anterior procede de la poda pesimista propuesta por Quinlan \cite{quinlan1987simplifying}, donde se añade una corrección de $0.5$ errores al error observado con el objetivo de obtener una estimación más conservadora del error real. Esta corrección evita que el árbol confíe excesivamente en el error calculado sobre el conjunto de entrenamiento y penaliza la creación de hojas innecesarias.
+
+\subsection{\textbf{Funcionamiento del algoritmo C4.5}}
+
+Una vez definidos los conceptos teóricos necesarios para la construcción del árbol de decisión, se puede explicar el funcionamiento general del algoritmo \texttt{C4.5}. Este algoritmo fue propuesto por Quinlan como una evolución del algoritmo \texttt{ID3}, incorporando mejoras como el uso del \textit{gain ratio}, el tratamiento de atributos continuos mediante umbrales y la poda posterior del árbol \cite{1986InductionTrees,1996ContinuousC45,2008Top10Algorithms}.
+
+El algoritmo construye el árbol de decisión de forma recursiva. Para ello, parte de un conjunto de datos inicial $S$ y de un conjunto de atributos $A$. En cada iteración, el algoritmo evalúa cada atributo disponible y calcula las medidas explicadas anteriormente: la entropía, la ganancia de información, el \textit{split information} y el \textit{gain ratio}. El atributo seleccionado como nodo será aquel que obtenga el mayor valor de \textit{gain ratio}, ya que esta medida permite elegir la variable que mejor divide el conjunto de datos penalizando, al mismo tiempo, aquellas divisiones excesivamente ramificadas.
+
+En el caso de los atributos continuos, el algoritmo no divide directamente por cada valor diferente del atributo, sino que busca posibles umbrales de división. Cada umbral separa el conjunto de datos en dos subconjuntos: uno formado por los ejemplos cuyo valor es menor o igual que el umbral, y otro formado por los ejemplos cuyo valor es mayor. Para cada posible umbral se calcula el \textit{gain ratio}, seleccionándose aquel que produzca la mejor división \cite{1996ContinuousC45}.
+
+El proceso continúa de forma recursiva sobre cada subconjunto generado, creando nuevos nodos y ramas hasta que se cumple alguna condición de parada. Estas condiciones pueden darse cuando todos los ejemplos de un subconjunto pertenecen a la misma clase, cuando no quedan atributos disponibles para dividir o cuando no existe una división que mejore la clasificación de los datos. En estos casos, el algoritmo crea un nodo hoja, asignando normalmente la clase mayoritaria del subconjunto.
+
+Finalmente, una vez construido el árbol inicial, se puede aplicar un proceso de poda o \textit{pruning}. Como se ha explicado anteriormente, la poda consiste en recorrer el árbol desde las hojas hacia la raíz para comprobar si determinadas ramas pueden eliminarse sin aumentar significativamente el error del modelo. De esta forma, se obtiene un árbol más simple, se reduce la sobre-ramificación y se mejora la capacidad de generalización del algoritmo \cite{1997AnalysisPruning,1989ComparativePruning,quinlan1987simplifying}.
+
+
+\begin{algorithm}[H]
+\caption{Pseudocódigo del algoritmo C4.5}
+\label{alg}
+\begin{algorithmic}[1]
+\Require Conjunto de datos $S$, conjunto de atributos $A$
+\Ensure Árbol de decisión $T$
+
+\Function{C4.5}{$S, A$}
+
+\If{$S$ está vacío}
+    \State \Return nodo hoja con la clase mayoritaria del nodo anterior
+\EndIf
+
+\If{todos los ejemplos de $S$ pertenecen a la misma clase}
+    \State \Return nodo hoja con dicha clase
+\EndIf
+
+\If{$A$ está vacío}
+    \State \Return nodo hoja con la clase mayoritaria de $S$
+\EndIf
+
+\For{cada atributo $a \in A$}
+    \If{$a$ es un atributo continuo}
+        \State Generar los posibles umbrales de división para $a$
+        \For{cada umbral $u$ del atributo $a$}
+            \State Dividir $S$ en dos subconjuntos: $S_{\leq u}$ y $S_{>u}$
+            \State Calcular $Gain(S,a)$ usando la ecuación \ref{eq:information_gain}
+            \State Calcular $SplitInfo(S,a)$ usando la ecuación \ref{eq:split_info}
+            \State Calcular $GainRatio(S,a)$ usando la ecuación \ref{eq:gain_ratio}
+        \EndFor
+        \State Guardar el umbral con mayor \textit{gain ratio} para el atributo $a$
+    \Else
+        \State Dividir $S$ según los valores de $a$
+        \State Calcular $Gain(S,a)$ usando la ecuación \ref{eq:information_gain}
+        \State Calcular $SplitInfo(S,a)$ usando la ecuación \ref{eq:split_info}
+        \State Calcular $GainRatio(S,a)$ usando la ecuación \ref{eq:gain_ratio}
+    \EndIf
+\EndFor
+
+\State Seleccionar el atributo $a_{mejor}$ con mayor \textit{gain ratio}
+\State Crear un nodo de decisión con el atributo $a_{mejor}$
+
+\If{$a_{mejor}$ es un atributo continuo}
+    \State Obtener el mejor umbral $u_{mejor}$ del atributo $a_{mejor}$
+    \State Crear el subconjunto $S_{\leq u} = \{x \in S \mid a_{mejor}(x) \leq u_{mejor}\}$
+    \State Crear el subconjunto $S_{>u} = \{x \in S \mid a_{mejor}(x) > u_{mejor}\}$
+    \State Añadir como rama izquierda el resultado de \Call{C4.5}{$S_{\leq u}, A$}
+    \State Añadir como rama derecha el resultado de \Call{C4.5}{$S_{>u}, A$}
+\Else
+    \For{cada valor $v \in Values(a_{mejor})$}
+        \State Crear el subconjunto $S_v = \{x \in S \mid a_{mejor}(x) = v\}$
+        \If{$S_v$ está vacío}
+            \State Añadir nodo hoja con la clase mayoritaria de $S$
+        \Else
+            \State Añadir como rama el resultado de \Call{C4.5}{$S_v, A - \{a_{mejor}\}$}
+        \EndIf
+    \EndFor
+\EndIf
+
+\State Aplicar poda posterior al árbol generado
+\State \Return nodo de decisión
+
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+El Pseudocódigo anterior resume el proceso seguido por el algoritmo \texttt{C4.5}. En primer lugar, se comprueban las condiciones de parada. Si todos los ejemplos pertenecen a la misma clase, el algoritmo genera una hoja directamente. Si todavía existen varias clases, se evalúan los atributos disponibles calculando para cada uno de ellos la ganancia de información, el \textit{split information} y el \textit{gain ratio}. Posteriormente, se selecciona el atributo con mayor \textit{gain ratio}, ya que será el que mejor divida el conjunto de datos según los criterios explicados anteriormente.
+
+Cuando el atributo seleccionado es continuo, la división se realiza mediante un umbral. Este umbral permite separar los datos en dos subconjuntos, diferenciando los valores menores o iguales al umbral de aquellos que son mayores. En cambio, si el atributo es categórico, el conjunto de datos se divide según los diferentes valores que puede tomar dicho atributo.
+
+El algoritmo repite este proceso de forma recursiva para cada subconjunto generado. Como resultado, se va construyendo el árbol de decisión desde la raíz hasta las hojas. Una vez generado el árbol, se aplica la poda posterior con el objetivo de eliminar ramas que no aporten información suficiente. Para ello, se puede utilizar la estimación pesimista del error explicada anteriormente:
+
+\begin{equation}
+e = \frac{E + 0.5}{N}
+\label{eq}
+\end{equation}
+
+donde $E$ representa el número de ejemplos mal clasificados por el nodo hoja, $N$ representa el número total de ejemplos que llegan a dicho nodo y $0.5$ es la penalización pesimista añadida al error observado. Si al sustituir un subárbol por una hoja el error estimado no aumenta de forma significativa, el subárbol puede ser eliminado. De esta manera, el algoritmo obtiene un árbol más sencillo, evitando divisiones innecesarias y reduciendo el riesgo de sobreajuste.
+
