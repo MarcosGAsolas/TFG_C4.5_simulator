@@ -4,6 +4,7 @@
 [![Repository](https://img.shields.io/badge/GitHub-repository-black?logo=github)](https://github.com/MarcosGAsolas/TFG_C4.5_simulator)
 ![GitHub repo size](https://img.shields.io/github/repo-size/MarcosGAsolas/TFG_C4.5_simulator)
 ![GitHub last commit](https://img.shields.io/github/last-commit/MarcosGAsolas/TFG_C4.5_simulator)
+[![Zube](https://img.shields.io/badge/Zube-board-blueviolet)]([URL_DE_TU_PROYECTO_ZUBE](https://zube.io/uni-2/tfg_c45_simulator/w/workspace-1/kanban))
 
 Aplicación web educativa para estudiar la construcción de árboles de decisión con el algoritmo C4.5. El proyecto incluye módulos teóricos y simulaciones paso a paso para entender la entropía, la entropía condicional, la elección de nodos, la construcción del árbol y la poda.
 
